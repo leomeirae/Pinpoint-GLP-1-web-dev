@@ -1,0 +1,229 @@
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Alert, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useSignUp } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { COLORS } from '@/constants/colors';
+
+export default function VerifyEmailScreen() {
+  const { signUp, setActive, isLoaded } = useSignUp();
+  const router = useRouter();
+
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+
+  useEffect(() => {
+    console.log('Estado do signUp:', {
+      isLoaded,
+      hasSignUp: !!signUp,
+      emailAddress: signUp?.emailAddress,
+      status: signUp?.status,
+    });
+
+    // Se não tiver signUp, redirecionar
+    if (isLoaded && !signUp) {
+      Alert.alert(
+        'Erro',
+        'Sessão de cadastro expirou. Por favor, cadastre-se novamente.',
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-up') }]
+      );
+    }
+  }, [isLoaded, signUp]);
+
+  const handleVerify = async () => {
+    if (!isLoaded || !signUp) {
+      Alert.alert('Erro', 'Sessão de cadastro não encontrada. Por favor, cadastre-se novamente.');
+      router.replace('/(auth)/sign-up');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Remover espaços em branco e limpar o código
+      const cleanCode = code.trim().replace(/\s/g, '');
+      
+      console.log('Tentando verificar com código:', cleanCode);
+      
+      const result = await signUp.attemptEmailAddressVerification({
+        code: cleanCode,
+      });
+
+      console.log('Resultado da verificação:', result.status);
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.replace('/(tabs)');
+      } else {
+        setError(`Verificação incompleta. Status: ${result.status}`);
+      }
+    } catch (err: any) {
+      console.error('Erro na verificação:', err);
+      const errorMessage = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Código inválido';
+      setError(errorMessage);
+      Alert.alert('Erro', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isLoaded || !signUp) return;
+
+    setResendLoading(true);
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      Alert.alert('Sucesso', 'Código reenviado para seu email!');
+    } catch (err: any) {
+      Alert.alert('Erro', err.errors?.[0]?.message || 'Erro ao reenviar código');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+      keyboardVerticalOffset={100}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            <Text style={styles.icon}>📧</Text>
+            <Text style={styles.title}>Verifique seu email</Text>
+            <Text style={styles.subtitle}>
+              Enviamos um código de 6 dígitos para{'\n'}
+              <Text style={styles.email}>
+                {signUp?.emailAddress}
+              </Text>
+            </Text>
+
+            <View style={styles.form}>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoText}>
+                  💡 O código tem 6 dígitos e foi enviado para seu email.
+                  Pode levar alguns minutos para chegar.
+                </Text>
+              </View>
+
+              <Input
+                label="Código de verificação"
+                placeholder="000000"
+                value={code}
+                onChangeText={(text) => {
+                  const cleaned = text.replace(/\D/g, '');
+                  setCode(cleaned);
+                  // Auto-verificar quando tiver 6 dígitos
+                  if (cleaned.length === 6) {
+                    Keyboard.dismiss();
+                  }
+                }}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoComplete="one-time-code"
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  if (code.length === 6) {
+                    handleVerify();
+                  }
+                }}
+              />
+
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              <Button
+                label="Verificar"
+                onPress={handleVerify}
+                loading={loading}
+                disabled={code.length !== 6}
+              />
+
+              <Button
+                label="Reenviar código"
+                onPress={handleResendCode}
+                variant="outline"
+                loading={resendLoading}
+              />
+
+              <Button
+                label="Voltar"
+                onPress={() => router.back()}
+                variant="secondary"
+              />
+            </View>
+          </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100%',
+  },
+  icon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginBottom: 32,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  email: {
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  form: {
+    gap: 16,
+    width: '100%',
+  },
+  infoBox: {
+    backgroundColor: COLORS.card,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  infoText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});
