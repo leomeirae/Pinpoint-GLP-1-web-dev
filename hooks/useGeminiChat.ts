@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 import { geminiService, NutritionAnalysis } from '@/lib/gemini';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useGeminiChat');
 
 export interface ChatMessage {
   id: string;

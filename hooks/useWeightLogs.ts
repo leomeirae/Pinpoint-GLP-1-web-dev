@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { WeightLog, InsertWeightLog, UpdateWeightLog } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useWeightLogs');
 
 export function useWeightLogs() {
   const { user } = useUser();
@@ -31,7 +34,7 @@ export function useWeightLogs() {
       if (fetchError) throw fetchError;
       setWeightLogs(data || []);
     } catch (err: any) {
-      console.error('Error fetching weight logs:', err);
+      logger.error('Error fetching weight logs:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -40,11 +43,11 @@ export function useWeightLogs() {
 
   async function addWeightLog(weightLog: InsertWeightLog) {
     if (!user) {
-      console.error('User not found in useWeightLogs');
+      logger.error('User not found in useWeightLogs');
       throw new Error('User not found. Please wait for sync to complete.');
     }
 
-    console.log('Adding weight log for user:', user.id);
+    logger.info('Adding weight log for user:', user.id);
 
     const { data, error } = await supabase
       .from('weight_logs')
@@ -53,7 +56,7 @@ export function useWeightLogs() {
       .single();
 
     if (error) {
-      console.error('Error adding weight log:', error);
+      logger.error('Error adding weight log:', error);
       throw error;
     }
     

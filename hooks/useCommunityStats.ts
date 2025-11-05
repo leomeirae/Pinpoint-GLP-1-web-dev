@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { useWeightLogs } from './useWeightLogs';
 import { useMedications } from './useMedications';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useCommunityStats');
 
 interface CommunityComparison {
   yourWeightLost: number;

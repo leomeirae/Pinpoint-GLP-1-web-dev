@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { UserAvatar, AvatarCustomization } from '@/lib/types/avatar';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useAvatar');
 
 export const useAvatar = () => {
   const { user } = useUser();
@@ -45,7 +48,7 @@ export const useAvatar = () => {
 
       setAvatar(parsedData);
     } catch (err) {
-      console.error('Error fetching avatar:', err);
+      logger.error('Error fetching avatar:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -89,7 +92,7 @@ export const useAvatar = () => {
       setAvatar(parsedData);
       return parsedData;
     } catch (err) {
-      console.error('Error creating avatar:', err);
+      logger.error('Error creating avatar:', err);
       setError(err as Error);
       throw err;
     }
@@ -121,7 +124,7 @@ export const useAvatar = () => {
       setAvatar(parsedData);
       return parsedData;
     } catch (err) {
-      console.error('Error updating avatar:', err);
+      logger.error('Error updating avatar:', err);
       setError(err as Error);
       throw err;
     }
@@ -154,7 +157,7 @@ export const useAvatar = () => {
       setAvatar(parsedData);
       return parsedData;
     } catch (err) {
-      console.error('Error leveling up avatar:', err);
+      logger.error('Error leveling up avatar:', err);
       setError(err as Error);
       throw err;
     }

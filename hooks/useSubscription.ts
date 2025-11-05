@@ -5,6 +5,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useSubscription');
 
 export interface Subscription {
   id: string;
@@ -70,7 +73,7 @@ export function useSubscription() {
         setSubscription(data);
       }
     } catch (err: any) {
-      console.error('Error fetching subscription:', err);
+      logger.error('Error fetching subscription:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ export function useSubscription() {
           return existingTrial;
         }
       }
-      console.error('Error starting trial:', insertError);
+      logger.error('Error starting trial:', insertError);
       throw insertError;
     }
 
@@ -168,7 +171,7 @@ export function useSubscription() {
       .single();
 
     if (upsertError) {
-      console.error('Error activating subscription:', upsertError);
+      logger.error('Error activating subscription:', upsertError);
       throw upsertError;
     }
 
@@ -190,7 +193,7 @@ export function useSubscription() {
       .eq('id', subscription.id);
 
     if (updateError) {
-      console.error('Error cancelling subscription:', updateError);
+      logger.error('Error cancelling subscription:', updateError);
       throw updateError;
     }
 

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useUser } from './useUser';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useProfile');
 
 export interface UserProfile {
   id: string;
@@ -53,7 +56,7 @@ export const useProfile = () => {
 
       setProfile(data);
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      logger.error('Error fetching profile:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -72,7 +75,7 @@ export const useProfile = () => {
       if (updateError) throw updateError;
       await fetchProfile();
     } catch (err) {
-      console.error('Error updating profile:', err);
+      logger.error('Error updating profile:', err);
       setError(err as Error);
       throw err;
     }
@@ -89,7 +92,7 @@ export const useProfile = () => {
       if (insertError) throw insertError;
       await fetchProfile();
     } catch (err) {
-      console.error('Error creating profile:', err);
+      logger.error('Error creating profile:', err);
       setError(err as Error);
       throw err;
     }

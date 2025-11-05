@@ -6,6 +6,9 @@ import { useSubscription } from './useSubscription';
 import { useFeatureFlag } from '@/lib/feature-flags';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@clerk/clerk-expo';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('usePremiumFeatures');
 
 interface EntitlementResult {
   user_id: string;
@@ -59,10 +62,10 @@ export function usePremiumFeatures() {
         // Se RPC falhar, usar fallback local
         // Erro PGRST116 significa que não há resultado (usuário sem subscription)
         if (rpcError.code === 'PGRST116') {
-          console.log('ℹ️ No entitlement found (user has no subscription), using free tier');
+          logger.info('ℹ️ No entitlement found (user has no subscription), using free tier');
           setEntitlement(null);
         } else {
-          console.warn('⚠️ RPC get_entitlement failed, using local fallback:', rpcError);
+          logger.warn('⚠️ RPC get_entitlement failed, using local fallback:', rpcError);
           setError(`Failed to fetch premium status: ${rpcError.message}`);
           setEntitlement(null);
         }
@@ -71,7 +74,7 @@ export function usePremiumFeatures() {
 
       setEntitlement(data);
     } catch (err: any) {
-      console.error('❌ Error fetching entitlement:', err);
+      logger.error('❌ Error fetching entitlement:', err);
       setError(err.message || 'Unknown error fetching premium status');
       // Em caso de erro, assumir tier gratuito como fallback seguro
       setEntitlement(null);

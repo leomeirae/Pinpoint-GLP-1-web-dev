@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { useWeightLogs } from './useWeightLogs';
 import { useMedicationApplications } from './useMedicationApplications';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useStreaks');
 
 export interface StreakData {
   currentWeightStreak: number;

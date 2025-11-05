@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useApplications');
 
 export interface Application {
   id: string;
@@ -65,7 +68,7 @@ export const useApplications = () => {
 
       setApplications(parsedData);
     } catch (err) {
-      console.error('Error fetching applications:', err);
+      logger.error('Error fetching applications:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -90,7 +93,7 @@ export const useApplications = () => {
       if (insertError) throw insertError;
       await fetchApplications();
     } catch (err) {
-      console.error('Error creating application:', err);
+      logger.error('Error creating application:', err);
       setError(err as Error);
       throw err;
     }
@@ -111,7 +114,7 @@ export const useApplications = () => {
       if (updateError) throw updateError;
       await fetchApplications();
     } catch (err) {
-      console.error('Error updating application:', err);
+      logger.error('Error updating application:', err);
       setError(err as Error);
       throw err;
     }
@@ -129,7 +132,7 @@ export const useApplications = () => {
       if (deleteError) throw deleteError;
       await fetchApplications();
     } catch (err) {
-      console.error('Error deleting application:', err);
+      logger.error('Error deleting application:', err);
       setError(err as Error);
       throw err;
     }

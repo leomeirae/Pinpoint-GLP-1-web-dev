@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { PersonalGoal, CreateGoalInput, Milestone } from '@/lib/types/goals';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useGoals');
 
 export const useGoals = () => {
   const { user } = useUser();
@@ -40,7 +43,7 @@ export const useGoals = () => {
       const parsedGoals = (data || []).map(parseGoal);
       setGoals(parsedGoals);
     } catch (err) {
-      console.error('Error fetching goals:', err);
+      logger.error('Error fetching goals:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -76,7 +79,7 @@ export const useGoals = () => {
 
       return parsedGoal;
     } catch (err) {
-      console.error('Error creating goal:', err);
+      logger.error('Error creating goal:', err);
       setError(err as Error);
       throw err;
     }
@@ -103,7 +106,7 @@ export const useGoals = () => {
 
       return parsedGoal;
     } catch (err) {
-      console.error('Error updating goal:', err);
+      logger.error('Error updating goal:', err);
       setError(err as Error);
       throw err;
     }
@@ -136,7 +139,7 @@ export const useGoals = () => {
 
       setGoals(prev => prev.filter(g => g.id !== goalId));
     } catch (err) {
-      console.error('Error deleting goal:', err);
+      logger.error('Error deleting goal:', err);
       setError(err as Error);
       throw err;
     }

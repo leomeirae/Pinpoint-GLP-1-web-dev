@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { SideEffect, InsertSideEffect, UpdateSideEffect } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useSideEffects');
 
 export function useSideEffects() {
   const { user } = useUser();
@@ -31,7 +34,7 @@ export function useSideEffects() {
       if (fetchError) throw fetchError;
       setSideEffects(data || []);
     } catch (err: any) {
-      console.error('Error fetching side effects:', err);
+      logger.error('Error fetching side effects:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -40,11 +43,11 @@ export function useSideEffects() {
 
   async function addSideEffect(sideEffect: InsertSideEffect) {
     if (!user) {
-      console.error('User not found in useSideEffects');
+      logger.error('User not found in useSideEffects');
       throw new Error('User not found. Please wait for sync to complete.');
     }
 
-    console.log('Adding side effect for user:', user.id);
+    logger.info('Adding side effect for user:', user.id);
 
     const { data, error } = await supabase
       .from('side_effects')
@@ -53,7 +56,7 @@ export function useSideEffects() {
       .single();
 
     if (error) {
-      console.error('Error adding side effect:', error);
+      logger.error('Error adding side effect:', error);
       throw error;
     }
     

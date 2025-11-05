@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { HealthScore, HealthScoreComponents } from '@/lib/types/insights';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useHealthScore');
 
 export const useHealthScore = () => {
   const { user } = useUser();

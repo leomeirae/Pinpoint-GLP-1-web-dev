@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { AppPersonality, PersonalityUpdate, getDefaultPersonality, personalizeMessage } from '@/lib/types/communication';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('usePersonality');
 
 export const usePersonality = () => {
   const { user } = useUser();
@@ -42,7 +45,7 @@ export const usePersonality = () => {
 
       setPersonality(parsedData);
     } catch (err) {
-      console.error('Error fetching personality:', err);
+      logger.error('Error fetching personality:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -82,7 +85,7 @@ export const usePersonality = () => {
       setPersonality(parsedData);
       return parsedData;
     } catch (err) {
-      console.error('Error creating personality:', err);
+      logger.error('Error creating personality:', err);
       setError(err as Error);
       throw err;
     }
@@ -112,7 +115,7 @@ export const usePersonality = () => {
       setPersonality(parsedData);
       return parsedData;
     } catch (err) {
-      console.error('Error updating personality:', err);
+      logger.error('Error updating personality:', err);
       setError(err as Error);
       throw err;
     }

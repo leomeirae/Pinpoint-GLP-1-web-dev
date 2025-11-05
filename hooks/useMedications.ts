@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { Medication, InsertMedication, UpdateMedication } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useMedications');
 
 export function useMedications() {
   const { user } = useUser();
@@ -31,7 +34,7 @@ export function useMedications() {
       if (fetchError) throw fetchError;
       setMedications(data || []);
     } catch (err: any) {
-      console.error('Error fetching medications:', err);
+      logger.error('Error fetching medications:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -40,11 +43,11 @@ export function useMedications() {
 
   async function addMedication(medication: InsertMedication) {
     if (!user) {
-      console.error('User not found in useMedications');
+      logger.error('User not found in useMedications');
       throw new Error('User not found. Please wait for sync to complete.');
     }
 
-    console.log('Adding medication for user:', user.id);
+    logger.info('Adding medication for user:', user.id);
 
     const { data, error } = await supabase
       .from('medications')
@@ -53,7 +56,7 @@ export function useMedications() {
       .single();
 
     if (error) {
-      console.error('Error adding medication:', error);
+      logger.error('Error adding medication:', error);
       throw error;
     }
     

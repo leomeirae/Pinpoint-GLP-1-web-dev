@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
 import { MedicationApplication, InsertMedicationApplication, UpdateMedicationApplication } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useMedicationApplications');
 
 export function useMedicationApplications() {
   const { user } = useUser();

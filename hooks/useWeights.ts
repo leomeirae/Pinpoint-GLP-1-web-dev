@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useWeights');
 
 export interface Weight {
   id: string;
@@ -47,7 +50,7 @@ export const useWeights = () => {
 
       setWeights(parsedData);
     } catch (err) {
-      console.error('Error fetching weights:', err);
+      logger.error('Error fetching weights:', err);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -72,7 +75,7 @@ export const useWeights = () => {
       if (insertError) throw insertError;
       await fetchWeights();
     } catch (err) {
-      console.error('Error creating weight:', err);
+      logger.error('Error creating weight:', err);
       setError(err as Error);
       throw err;
     }
@@ -90,7 +93,7 @@ export const useWeights = () => {
       if (updateError) throw updateError;
       await fetchWeights();
     } catch (err) {
-      console.error('Error updating weight:', err);
+      logger.error('Error updating weight:', err);
       setError(err as Error);
       throw err;
     }
@@ -108,7 +111,7 @@ export const useWeights = () => {
       if (deleteError) throw deleteError;
       await fetchWeights();
     } catch (err) {
-      console.error('Error deleting weight:', err);
+      logger.error('Error deleting weight:', err);
       setError(err as Error);
       throw err;
     }
