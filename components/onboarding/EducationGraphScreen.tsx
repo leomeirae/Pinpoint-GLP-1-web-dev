@@ -4,7 +4,7 @@ import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
-import { VictoryArea, VictoryChart, VictoryAxis, VictoryScatter } from 'victory';
+import { VictoryArea, VictoryChart, VictoryAxis, VictoryScatter } from 'victory-native';
 
 interface EducationGraphScreenProps {
   onNext: () => void;

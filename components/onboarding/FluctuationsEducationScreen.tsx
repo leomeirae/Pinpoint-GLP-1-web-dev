@@ -4,7 +4,7 @@ import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
-import { VictoryLine, VictoryChart, VictoryAxis, VictoryArea } from 'victory';
+import { VictoryLine, VictoryChart, VictoryAxis, VictoryArea } from 'victory-native';
 
 interface FluctuationsEducationScreenProps {
   onNext: () => void;
