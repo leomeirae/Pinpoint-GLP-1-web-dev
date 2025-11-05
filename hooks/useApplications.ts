@@ -56,10 +56,10 @@ export const useApplications = () => {
         }
 
         return {
-          ...app,
+        ...app,
           date: dateTime,
-          created_at: new Date(app.created_at),
-          updated_at: new Date(app.updated_at),
+        created_at: new Date(app.created_at),
+        updated_at: new Date(app.updated_at),
         };
       });
 

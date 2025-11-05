@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useMedications } from '@/hooks/useMedications';
-import { useColors } from '@/constants/colors';
+import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { MedicationType } from '@/lib/types';
+import * as Haptics from 'expo-haptics';
 
 const MEDICATION_OPTIONS: { value: MedicationType; label: string }[] = [
   { value: 'mounjaro', label: 'Mounjaro' },
@@ -16,7 +15,7 @@ const MEDICATION_OPTIONS: { value: MedicationType; label: string }[] = [
 ];
 
 export default function AddMedicationScreen() {
-  const colors = useColors();
+  const colors = useShotsyColors();
   const router = useRouter();
   const params = useLocalSearchParams();
   const editId = params.editId as string | undefined;
@@ -47,6 +46,7 @@ export default function AddMedicationScreen() {
 
     try {
       setLoading(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       if (editId) {
         // Update existing medication
@@ -55,7 +55,10 @@ export default function AddMedicationScreen() {
           dosage: parseFloat(dosage),
           frequency,
         });
-        Alert.alert('Sucesso!', 'Medicação atualizada');
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Sucesso!', 'Medicação atualizada', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
       } else {
         // Add new medication
         await addMedication({
@@ -64,77 +67,155 @@ export default function AddMedicationScreen() {
           frequency,
           start_date: new Date().toISOString().split('T')[0],
         });
-        Alert.alert('Sucesso!', 'Medicação adicionada');
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert('Sucesso!', 'Medicação adicionada', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
       }
-
-      router.back();
     } catch (error: any) {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Erro', error.message);
-    } finally {
       setLoading(false);
     }
   }
+
+  const canSave = dosage.trim() !== '';
 
   const styles = getStyles(colors);
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-      <Text style={styles.title}>{editId ? 'Editar Medicação' : 'Adicionar Medicação'}</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={[styles.cancelButton, { color: colors.primary }]}>Cancelar</Text>
+          </TouchableOpacity>
 
-      <Text style={styles.label}>Tipo de Medicação</Text>
-      <View style={styles.optionsGrid}>
-        {MEDICATION_OPTIONS.map((option) => (
-          <Button
-            key={option.value}
-            label={option.label}
-            onPress={() => setType(option.value)}
-            variant={type === option.value ? 'primary' : 'outline'}
-          />
-        ))}
-      </View>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>
+            {editId ? 'Editar Medicação' : 'Adicionar Medicação'}
+          </Text>
 
-      <Input
-        label="Dosagem (mg)"
-        placeholder="Ex: 2.5"
-        value={dosage}
-        onChangeText={setDosage}
-        keyboardType="decimal-pad"
-      />
+          <TouchableOpacity onPress={handleSubmit} disabled={!canSave || loading}>
+            <Text
+              style={[
+                styles.saveButton,
+                { color: canSave && !loading ? colors.primary : colors.textSecondary }
+              ]}
+            >
+              Salvar
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      <Text style={styles.label}>Frequência</Text>
-      <View style={styles.frequencyRow}>
-        <Button
-          label="Semanal"
-          onPress={() => setFrequency('weekly')}
-          variant={frequency === 'weekly' ? 'primary' : 'outline'}
-        />
-        <Button
-          label="Diária"
-          onPress={() => setFrequency('daily')}
-          variant={frequency === 'daily' ? 'primary' : 'outline'}
-        />
-      </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+          {/* TIPO DE MEDICAÇÃO */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              TIPO DE MEDICAÇÃO
+            </Text>
+            <View style={styles.optionsGrid}>
+              {MEDICATION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.optionCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                    type === option.value && { borderColor: colors.primary, borderWidth: 2 }
+                  ]}
+                  onPress={() => {
+                    setType(option.value);
+                    Haptics.selectionAsync();
+                  }}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    { color: type === option.value ? colors.primary : colors.text }
+                  ]}>
+                    {option.label}
+                  </Text>
+                  {type === option.value && (
+                    <Text style={[styles.optionCheck, { color: colors.primary }]}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-      {medicationsLoading && (
-        <Text style={styles.loadingText}>Carregando dados do usuário...</Text>
-      )}
-      
-      <Button
-        label={editId ? 'Salvar Alterações' : 'Adicionar Medicação'}
-        onPress={handleSubmit}
-        loading={loading}
-        disabled={medicationsLoading || loading}
-      />
+          {/* DOSAGEM */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              DOSAGEM
+            </Text>
+            <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <TextInput
+                style={[styles.input, { color: colors.text }]}
+                placeholder="Ex: 2.5"
+                placeholderTextColor={colors.textSecondary}
+                value={dosage}
+                onChangeText={setDosage}
+                keyboardType="decimal-pad"
+              />
+              <Text style={[styles.inputUnit, { color: colors.textSecondary }]}>mg</Text>
+            </View>
+          </View>
+
+          {/* FREQUÊNCIA */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+              FREQUÊNCIA DE APLICAÇÃO
+            </Text>
+            <View style={styles.frequencyRow}>
+              <TouchableOpacity
+                style={[
+                  styles.frequencyCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  frequency === 'weekly' && { borderColor: colors.primary, borderWidth: 2 }
+                ]}
+                onPress={() => {
+                  setFrequency('weekly');
+                  Haptics.selectionAsync();
+                }}
+              >
+                <Text style={[
+                  styles.frequencyText,
+                  { color: frequency === 'weekly' ? colors.primary : colors.text }
+                ]}>
+                  Semanal
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.frequencyCard,
+                  { backgroundColor: colors.card, borderColor: colors.border },
+                  frequency === 'daily' && { borderColor: colors.primary, borderWidth: 2 }
+                ]}
+                onPress={() => {
+                  setFrequency('daily');
+                  Haptics.selectionAsync();
+                }}
+              >
+                <Text style={[
+                  styles.frequencyText,
+                  { color: frequency === 'daily' ? colors.primary : colors.text }
+                ]}>
+                  Diária
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {medicationsLoading && (
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+              Carregando dados do usuário...
+            </Text>
+          )}
         </ScrollView>
-      </TouchableWithoutFeedback>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -142,37 +223,102 @@ export default function AddMedicationScreen() {
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  scrollContent: {
-    padding: 24,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 56,  // Consistência com outros screens
+    paddingBottom: 16,
+    borderBottomWidth: 1,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 24,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
   },
-  label: {
+  cancelButton: {
+    fontSize: 16,
+  },
+  saveButton: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 12,
-    marginTop: 16,
+    textTransform: 'uppercase',
   },
   optionsGrid: {
-    gap: 12,
-    marginBottom: 16,
+    gap: 8,
+  },
+  optionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 56,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  optionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  optionCheck: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  inputCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 56,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  inputUnit: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   frequencyRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
+  },
+  frequencyCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  frequencyText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   loadingText: {
-    color: colors.textSecondary,
     fontSize: 14,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 16,
   },
 });

@@ -58,7 +58,13 @@ export default function VerifyEmailScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
+        
+        // Aguardar um pouco para garantir que o usuário foi criado no Supabase
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verificar se o onboarding foi completado
+        // Se não foi, redirecionar para onboarding
+        router.replace('/(auth)/onboarding-flow');
       } else {
         setError(`Verificação incompleta. Status: ${result.status}`);
       }

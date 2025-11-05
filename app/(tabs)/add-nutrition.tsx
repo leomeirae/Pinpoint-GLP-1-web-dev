@@ -171,7 +171,7 @@ export default function NutritionChatScreen() {
           <TouchableOpacity
             style={[styles.tab, activeTab === 'chat' && styles.activeTab]}
             onPress={() => handleTabChange('chat')}
-          >
+        >
             <ChatCircle
               size={20}
               color={activeTab === 'chat' ? colors.primary : colors.textSecondary}
@@ -202,7 +202,7 @@ export default function NutritionChatScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+          </View>
 
       {/* Chat Tab */}
       {activeTab === 'chat' && (
@@ -311,11 +311,11 @@ export default function NutritionChatScreen() {
                   fats={item.fats}
                   notes={item.notes}
                   onDelete={handleDeleteLog}
-                />
+            />
               )}
             />
           )}
-        </View>
+          </View>
       )}
 
       {/* Confirmation Modal */}
@@ -325,18 +325,18 @@ export default function NutritionChatScreen() {
         onConfirm={handleConfirmLog}
         onCancel={() => setShowConfirmation(false)}
         loading={savingLog}
-      />
+          />
     </KeyboardAvoidingView>
   );
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
   header: {
-    paddingTop: 60,
+    paddingTop: 56,  // Mudança: 60 → 56px (consistência com Results e Settings)
     paddingHorizontal: 20,
     paddingBottom: 16,
     backgroundColor: colors.background,
@@ -344,15 +344,15 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
+      fontSize: 28,
+      fontWeight: 'bold',
+      color: colors.text,
     marginBottom: 16,
   },
   tabs: {
     flexDirection: 'row',
     gap: 8,
-  },
+    },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -388,7 +388,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: colors.textSecondary,
+      color: colors.textSecondary,
   },
   inputContainer: {
     padding: 16,
@@ -400,7 +400,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     alignItems: 'flex-end',
-  },
+    },
   input: {
     flex: 1,
     backgroundColor: colors.card,
@@ -425,7 +425,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-  },
+    },
   sendButtonDisabled: {
     backgroundColor: colors.card,
     borderWidth: 2,
@@ -444,11 +444,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.text,
     marginBottom: 8,
-  },
+    },
   emptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
@@ -460,10 +460,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
-  },
+    },
   goToChatButtonText: {
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
-  },
-});
+    },
+  });

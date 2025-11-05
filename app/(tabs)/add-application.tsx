@@ -84,7 +84,7 @@ export default function AddApplicationScreen() {
   } = useApplications();
 
   const { profile } = useProfile();
-  const { medications, loading: medicationsLoading } = useMedications();
+  const { medications, loading: medicationsLoading, addMedication } = useMedications();
   
   // Get active medication
   const activeMedication = medications.find(m => m.active);
@@ -139,9 +139,54 @@ export default function AddApplicationScreen() {
   const handleSave = async () => {
     if (!canSave || isSaving) return;
 
-    if (!activeMedication) {
-      Alert.alert('Erro', 'Você precisa adicionar uma medicação antes de registrar uma aplicação.');
-      return;
+    // Se não houver medicação ativa, criar uma automaticamente com base nos dados do formulário
+    let medicationToUse = activeMedication;
+
+    if (!medicationToUse) {
+      // Só criar medicação automaticamente se tiver dosagem preenchida
+      if (!data.dosage) {
+        Alert.alert(
+          'Erro',
+          'Por favor, selecione a dosagem antes de salvar. Se você ainda não tem uma medicação cadastrada, ela será criada automaticamente.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Tentar criar medicação automaticamente com dados do formulário
+      try {
+        setIsSaving(true);
+        
+        // Usar dados do profile se disponível, senão usar valores do formulário
+        const medicationType = data.medication || profile?.medication || 'mounjaro';
+        const dosage = data.dosage; // Já validado acima
+        const frequency = profile?.frequency || 'weekly';
+
+        const newMedication = await addMedication({
+          type: medicationType,
+          dosage: dosage,
+          frequency: frequency,
+          start_date: new Date().toISOString().split('T')[0],
+          active: true, // Sempre criar como ativa
+        });
+
+        medicationToUse = newMedication;
+      } catch (error) {
+        console.error('Error creating medication:', error);
+        Alert.alert(
+          'Erro',
+          'Não foi possível criar a medicação automaticamente. Por favor, adicione uma medicação primeiro.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Adicionar Medicação',
+              onPress: () => router.push('/(tabs)/add-medication'),
+            },
+          ]
+        );
+        setIsSaving(false);
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -154,7 +199,7 @@ export default function AddApplicationScreen() {
       const timeString = data.date.toTimeString().split(' ')[0].substring(0, 5);
 
       const formattedData = {
-        medication_id: activeMedication.id,
+        medication_id: medicationToUse.id,
         application_date: dateString,
         application_time: timeString,
         dosage: data.dosage!,
@@ -705,6 +750,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 56,  // Adicionar minHeight para touch target adequado
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
@@ -725,7 +771,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dosageTag: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,  // Mudança: 12 → 8px (Shotsy badge padding)
     paddingVertical: 6,
     borderRadius: 16,
   },
@@ -813,6 +859,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minHeight: 60,  // Adicionar minHeight para touch target adequado
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,

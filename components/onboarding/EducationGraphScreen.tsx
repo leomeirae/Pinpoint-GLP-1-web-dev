@@ -1,14 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
+import { 
+  VictoryArea, 
+  VictoryChart, 
+  VictoryAxis, 
+  VictoryScatter 
+} from 'victory';
 
 interface EducationGraphScreenProps {
   onNext: () => void;
   onBack: () => void;
 }
+
+// Dados farmacocinéticos realistas para Mounjaro/GLP-1
+// Baseado em estudos clínicos (simplificados para visualização educacional)
+const pharmacokineticData = [
+  { day: 0, level: 0 },
+  { day: 1, level: 0.3 },
+  { day: 2, level: 0.7 },
+  { day: 3, level: 1.1 },
+  { day: 4, level: 1.2 }, // Pico (Tmax ~96h)
+  { day: 5, level: 0.9 },
+  { day: 6, level: 0.6 },
+  { day: 7, level: 0.3 }, // Antes da próxima dose
+];
 
 export function EducationGraphScreen({ onNext, onBack }: EducationGraphScreenProps) {
   const colors = useShotsyColors();
@@ -24,21 +43,85 @@ export function EducationGraphScreen({ onNext, onBack }: EducationGraphScreenPro
     >
       <View style={styles.content}>
         <ShotsyCard variant="elevated" style={styles.graphCard}>
-          <View style={styles.graphPlaceholder}>
-            <View style={styles.yAxis}>
-              <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Alto</Text>
-              <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Médio</Text>
-              <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Baixo</Text>
-            </View>
-            <View style={styles.graphArea}>
-              <View style={[styles.curve, { backgroundColor: currentAccent }]} />
-              <View style={styles.xAxis}>
-                <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Dia 1</Text>
-                <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Dia 4</Text>
-                <Text style={[styles.axisLabel, { color: colors.textMuted }]}>Dia 7</Text>
-              </View>
-            </View>
-          </View>
+          <VictoryChart
+            height={220}
+            width={Dimensions.get('window').width - 64}
+            padding={{ top: 20, bottom: 40, left: 50, right: 20 }}
+          >
+            {/* Eixo Y - Níveis de medicamento */}
+            <VictoryAxis
+              dependentAxis
+              label="Nível (mg)"
+              style={{
+                axisLabel: { 
+                  fontSize: 12, 
+                  padding: 35,
+                  fill: colors.textSecondary,
+                },
+                tickLabels: { 
+                  fontSize: 10,
+                  fill: colors.textMuted,
+                },
+                grid: { 
+                  stroke: colors.border, 
+                  strokeDasharray: '4,4',
+                  strokeOpacity: 0.5,
+                },
+                axis: { stroke: colors.border },
+              }}
+              tickValues={[0, 0.5, 1.0, 1.5]}
+            />
+            
+            {/* Eixo X - Dias */}
+            <VictoryAxis
+              label="Dias"
+              style={{
+                axisLabel: { 
+                  fontSize: 12, 
+                  padding: 30,
+                  fill: colors.textSecondary,
+                },
+                tickLabels: { 
+                  fontSize: 10,
+                  fill: colors.textMuted,
+                },
+                axis: { stroke: colors.border },
+              }}
+              tickValues={[0, 2, 4, 6, 7]}
+            />
+            
+            {/* Área preenchida - curva farmacológica */}
+            <VictoryArea
+              data={pharmacokineticData}
+              x="day"
+              y="level"
+              style={{
+                data: {
+                  fill: currentAccent,
+                  fillOpacity: 0.3,
+                  stroke: currentAccent,
+                  strokeWidth: 2,
+                }
+              }}
+              interpolation="natural" // Curva suave
+            />
+            
+            {/* Ponto do pico (Tmax) */}
+            <VictoryScatter
+              data={[{ day: 4, level: 1.2 }]}
+              x="day"
+              y="level"
+              size={6}
+              style={{
+                data: { fill: currentAccent }
+              }}
+            />
+          </VictoryChart>
+          
+          {/* Label do pico */}
+          <Text style={[styles.peakLabel, { color: currentAccent }]}>
+            ← Pico: 1.2mg (dia 4)
+          </Text>
         </ShotsyCard>
 
         <ShotsyCard style={styles.infoCard}>
@@ -68,35 +151,15 @@ const styles = StyleSheet.create({
   graphCard: {
     padding: 20,
   },
-  graphPlaceholder: {
-    flexDirection: 'row',
-    height: 200,
-  },
-  yAxis: {
-    justifyContent: 'space-between',
-    paddingRight: 8,
-    paddingVertical: 4,
-  },
-  axisLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  graphArea: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  curve: {
-    flex: 1,
-    borderRadius: 8,
-    opacity: 0.2,
-  },
-  xAxis: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
+  peakLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right',
+    marginTop: -40, // Sobrepor ao gráfico
+    marginRight: 20,
   },
   infoCard: {
-    padding: 16,
+    padding: 20, // Mudança: 16 → 20px (match Shotsy)
   },
   infoTitle: {
     fontSize: 18,

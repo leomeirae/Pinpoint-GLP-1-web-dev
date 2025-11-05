@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, Image, Linking } from 'react-native';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyButton } from '@/components/ui/shotsy-button';
-import { AppIcon, InjectionsIcon, ResultsIcon, TargetIcon } from '@/components/ui/icons';
+import { trackEvent } from '@/lib/analytics';
 
 interface WelcomeScreenProps {
   onNext: () => void;
@@ -11,24 +11,35 @@ interface WelcomeScreenProps {
 
 const { width } = Dimensions.get('window');
 
+// Slides do carrossel - 4 imagens do Shotsy
 const slides = [
   {
     id: '1',
-    icon: 'syringe',
-    title: 'Bem-vindo ao Shotsy',
-    description: 'Seu companheiro completo para acompanhar sua jornada com medicamentos GLP-1',
+    image: require('../../assets/imagens_carrossel_tela_inicial/imagem_1 (1).png'),
+    title: 'Aproveite ao máximo seu medicamento GLP-1',
+    subtitle: 'Mounjaro Tracker foi projetado para ajudar você a entender e acompanhar suas aplicações semanais.',
+    accessibilityLabel: 'Aproveite ao máximo seu medicamento GLP-1',
   },
   {
     id: '2',
-    icon: 'chartLine',
-    title: 'Acompanhe seu progresso',
-    description: 'Registre aplicações, peso, efeitos colaterais e muito mais em um só lugar',
+    image: require('../../assets/imagens_carrossel_tela_inicial/imagem_2 (1).png'),
+    title: 'Acompanhe com widgets personalizáveis',
+    subtitle: 'Nunca perca uma dose com widgets na tela inicial e lembretes por notificação.',
+    accessibilityLabel: 'Acompanhe com widgets personalizáveis',
   },
   {
     id: '3',
-    icon: 'target',
-    title: 'Alcance seus objetivos',
-    description: 'Defina metas, receba lembretes e mantenha-se motivado ao longo do caminho',
+    image: require('../../assets/imagens_carrossel_tela_inicial/imagem_3 (1).png'),
+    title: 'Entenda seu progresso com gráficos bonitos',
+    subtitle: 'Aprenda mais sobre seu medicamento com ferramentas baseadas em resultados de ensaios clínicos.',
+    accessibilityLabel: 'Entenda seu progresso com gráficos bonitos',
+  },
+  {
+    id: '4',
+    image: require('../../assets/imagens_carrossel_tela_inicial/imagem_4.png'),
+    title: 'Personalize o app para combinar com seu estilo',
+    subtitle: 'Personalize sua jornada com temas personalizados. Você pode até mudar o ícone!',
+    accessibilityLabel: 'Personalize o app para combinar com seu estilo',
   },
 ];
 
@@ -38,10 +49,24 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
+  // Track carousel view on mount
+  useEffect(() => {
+    trackEvent('carousel_view', {
+      slides: 4,
+      source: 'onboarding',
+    });
+  }, []);
+
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+      trackEvent('carousel_slide_view', {
+        index: currentIndex + 2,
+      });
     } else {
+      trackEvent('cta_start_click', {
+        from: 'onboarding_carousel',
+      });
       onNext();
     }
   };
@@ -51,8 +76,21 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
     setCurrentIndex(slideIndex);
   };
 
+  const handleOpenTerms = () => {
+    trackEvent('legal_open', { which: 'terms' });
+    Linking.openURL('https://mounjarotracker.app/terms');
+  };
+
+  const handleOpenPrivacy = () => {
+    trackEvent('legal_open', { which: 'privacy' });
+    Linking.openURL('https://mounjarotracker.app/privacy');
+  };
+
+  const currentSlide = slides[currentIndex];
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Carrossel de Imagens */}
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -64,18 +102,34 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <View style={styles.content}>
-              <AppIcon name={item.icon as any} size={120} color={colors.text} />
-              <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
-              <Text style={[styles.description, { color: colors.textSecondary }]}>
-                {item.description}
-              </Text>
+            <View style={styles.imageContainer}>
+              <Image 
+                source={item.image} 
+                style={styles.appImage} 
+                resizeMode="contain"
+                accessible={true}
+                accessibilityLabel={item.accessibilityLabel}
+              />
             </View>
           </View>
         )}
       />
 
-      <View style={styles.footer}>
+      {/* Conteúdo abaixo da imagem */}
+      <View style={styles.contentWrapper}>
+        {/* Título e Subtítulo */}
+        <View style={styles.textContainer}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {currentSlide.title}
+          </Text>
+          {currentSlide.subtitle && (
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {currentSlide.subtitle}
+            </Text>
+          )}
+        </View>
+
+        {/* Pagination dots */}
         <View style={styles.pagination}>
           {slides.map((_, index) => (
             <View
@@ -91,6 +145,7 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           ))}
         </View>
 
+        {/* Botão */}
         <View style={styles.buttonContainer}>
           <ShotsyButton
             title={currentIndex === slides.length - 1 ? 'Começar' : 'Próximo'}
@@ -98,14 +153,15 @@ export function WelcomeScreen({ onNext }: WelcomeScreenProps) {
           />
         </View>
 
+        {/* Links legais */}
         <TouchableOpacity style={styles.termsContainer}>
-          <Text style={[styles.termsText, { color: colors.textMuted }]}>
-            Ao continuar, você concorda com nossos{' '}
-            <Text style={[styles.termsLink, { color: currentAccent }]}>
+          <Text style={[styles.termsText, { color: colors.textSecondary }]}>
+            Ao continuar, você concorda com os{'\n'}
+            <Text style={[styles.termsLink, { color: currentAccent }]} onPress={handleOpenTerms}>
               Termos de Uso
-            </Text>{' '}
-            e{' '}
-            <Text style={[styles.termsLink, { color: currentAccent }]}>
+            </Text>
+            {' '}e a{' '}
+            <Text style={[styles.termsLink, { color: currentAccent }]} onPress={handleOpenPrivacy}>
               Política de Privacidade
             </Text>
           </Text>
@@ -123,37 +179,51 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingTop: 20,
   },
-  content: {
+  imageContainer: {
+    width: width * 0.85,
+    height: width * 1.2,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  appImage: {
+    width: '100%',
+    height: '100%',
+  },
+  contentWrapper: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    paddingTop: 24,
+  },
+  textContainer: {
+    marginBottom: 24,
     alignItems: 'center',
-    maxWidth: 400,
-  },
-  emoji: {
-    // fontSize: 120, // Removed as AppIcon handles its own size
-    marginBottom: 32,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+    lineHeight: 40,
   },
-  description: {
-    fontSize: 18,
+  subtitle: {
+    fontSize: 16,
     textAlign: 'center',
-    lineHeight: 28,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
+    lineHeight: 24,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   dot: {
     height: 8,
@@ -164,6 +234,7 @@ const styles = StyleSheet.create({
   },
   termsContainer: {
     alignItems: 'center',
+    paddingHorizontal: 12,
   },
   termsText: {
     fontSize: 12,

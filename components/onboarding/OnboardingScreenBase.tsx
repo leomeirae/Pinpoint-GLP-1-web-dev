@@ -54,7 +54,10 @@ export function OnboardingScreenBase({
         showsVerticalScrollIndicator={false}
       >
         {title && (
-          <View style={styles.header}>
+          <View style={[
+            styles.header,
+            showBackButton && onBack && styles.headerWithBackButton
+          ]}>
             <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
             {subtitle && (
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

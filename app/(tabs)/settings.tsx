@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/icons';
 import { useProfile } from '@/hooks/useProfile';
 import { useSettings } from '@/hooks/useSettings';
+import { PremiumGate } from '@/components/premium/PremiumGate';
 import * as Haptics from 'expo-haptics';
 
 export default function SettingsScreen() {
@@ -52,11 +53,9 @@ export default function SettingsScreen() {
               // Fazer logout do Clerk
               await signOut();
 
-              // Aguardar para garantir que o estado foi atualizado
-              await new Promise(resolve => setTimeout(resolve, 200));
-
-              // Redirecionar para a tela inicial (onde não há autenticação)
-              router.replace('/');
+              // Redirecionar diretamente para welcome, sem esperar
+              // O router.replace já é assíncrono e resolve o estado
+              router.replace('/(auth)/welcome');
             } catch (error) {
               console.error('Erro ao fazer logout:', error);
               Alert.alert('Erro', 'Não foi possível sair da conta. Tente novamente.');
@@ -226,11 +225,13 @@ export default function SettingsScreen() {
             onSwitchChange={setBiometricsEnabled}
             showArrow={false}
           />
-          <SettingsRow
-            icon={<ExportIcon size="md" />}
-            label="Exportar Dados"
-            onPress={handleExportData}
-          />
+          <PremiumGate featureName="export_data">
+            <SettingsRow
+              icon={<ExportIcon size="md" />}
+              label="Exportar Dados"
+              onPress={handleExportData}
+            />
+          </PremiumGate>
           <SettingsRow
             icon={<TrashIcon size="md" />}
             label="Limpar Cache"
@@ -256,6 +257,11 @@ export default function SettingsScreen() {
             icon={<FileTextIcon size="md" />}
             label="Política de Privacidade"
             onPress={handlePrivacyPolicy}
+          />
+          <SettingsRow
+            icon={<FileTextIcon size="md" />}
+            label="FAQ"
+            onPress={() => router.push('/(tabs)/faq')}
           />
           <SettingsRow
             icon={<ClipboardTextIcon size="md" />}

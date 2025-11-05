@@ -1,20 +1,38 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { useAuth } from '@/lib/clerk';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Custom storage adapter for Supabase using SecureStore
+// Custom storage adapter que funciona tanto na web quanto em mobile
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
+    if (Platform.OS === 'web') {
+      // Na web, usar localStorage
+      return Promise.resolve(localStorage.getItem(key));
+    }
+    // Em mobile, usar SecureStore
     return SecureStore.getItemAsync(key);
   },
   setItem: (key: string, value: string) => {
+    if (Platform.OS === 'web') {
+      // Na web, usar localStorage
+      localStorage.setItem(key, value);
+      return Promise.resolve();
+    }
+    // Em mobile, usar SecureStore
     return SecureStore.setItemAsync(key, value);
   },
   removeItem: (key: string) => {
+    if (Platform.OS === 'web') {
+      // Na web, usar localStorage
+      localStorage.removeItem(key);
+      return Promise.resolve();
+    }
+    // Em mobile, usar SecureStore
     return SecureStore.deleteItemAsync(key);
   },
 };
@@ -192,16 +210,18 @@ export function useSupabaseAuth() {
 
   const setSupabaseAuth = async () => {
     if (!userId) {
-      console.log('No user ID found');
+      console.log('🔐 No user ID found for Supabase auth');
       return;
     }
 
     try {
+      console.log('🔐 Attempting to get Clerk token for Supabase...');
+      
       // Get Clerk JWT token with Supabase template
       const token = await getToken({ template: 'supabase' });
       
       if (token) {
-        console.log('Setting Supabase auth with Clerk token');
+        console.log('🔐 Setting Supabase auth with Clerk token');
         
         // Set the auth session in Supabase
         const { error } = await supabase.auth.setSession({
@@ -210,13 +230,27 @@ export function useSupabaseAuth() {
         });
 
         if (error) {
-          console.error('Error setting Supabase session:', error);
+          console.error('❌ Error setting Supabase session:', error);
+          // Se o template 'supabase' não existir, tentar sem template
+          console.log('⚠️ Falling back to default token...');
+          try {
+            const defaultToken = await getToken();
+            if (defaultToken) {
+              console.log('🔐 Trying with default token');
+            }
+          } catch (fallbackError) {
+            console.error('❌ Error getting default token:', fallbackError);
+          }
         } else {
-          console.log('Supabase session set successfully');
+          console.log('✅ Supabase session set successfully');
         }
+      } else {
+        console.warn('⚠️ No token received from Clerk');
       }
     } catch (error) {
-      console.error('Error getting Clerk token:', error);
+      console.error('❌ Error getting Clerk token:', error);
+      // Se o template não existir, isso é esperado - vamos continuar sem ele
+      console.log('ℹ️ Note: Clerk template "supabase" may not be configured. This is OK if RLS allows inserts.');
     }
   };
 

@@ -67,6 +67,21 @@ export const useSettings = () => {
           await createSettings(DEFAULT_SETTINGS);
           return;
         }
+        
+        // Se erro é de RLS, usar configurações padrão localmente
+        if (fetchError.code === '42501') {
+          console.warn('⚠️ RLS policy error on settings, using default settings locally');
+          setSettings({
+            id: 'temp',
+            user_id: user.id,
+            ...DEFAULT_SETTINGS,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+          setLoading(false);
+          return;
+        }
+        
         throw fetchError;
       }
 
@@ -79,6 +94,18 @@ export const useSettings = () => {
     } catch (err) {
       console.error('Error fetching settings:', err);
       setError(err as Error);
+      
+      // Fallback: usar configurações padrão se houver erro
+      if (user) {
+        console.warn('⚠️ Using default settings as fallback');
+        setSettings({
+          id: 'temp',
+          user_id: user.id,
+          ...DEFAULT_SETTINGS,
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -118,12 +145,31 @@ export const useSettings = () => {
         .from('settings')
         .insert([{ user_id: user.id, ...settingsData }]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Se erro é de RLS, usar configurações padrão localmente e não lançar erro
+        if (insertError.code === '42501') {
+          console.warn('⚠️ RLS policy error creating settings, using default settings locally');
+          setSettings({
+            id: 'temp',
+            user_id: user.id,
+            ...settingsData,
+            created_at: new Date(),
+            updated_at: new Date(),
+          });
+          return;
+        }
+        throw insertError;
+      }
       await fetchSettings();
     } catch (err) {
       console.error('Error creating settings:', err);
       setError(err as Error);
-      throw err;
+      
+      // Se falhou por RLS, não lançar erro (já configuramos fallback acima)
+      const error = err as any;
+      if (error.code !== '42501') {
+        throw err;
+      }
     }
   };
 

@@ -277,8 +277,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingTop: 60, // Space for status bar
+    padding: 20,  // Mudança: 16 → 20px (Shotsy horizontal padding)
+    paddingTop: 64,  // Mudança: 60 → 64px (Shotsy status bar + title space)
   },
   buttonContainer: {
     marginVertical: 16,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   chartPlaceholder: {
-    height: 200,
+    height: 220,  // Mudança: 200 → 220px (Shotsy chart height)
     marginBottom: 16,
   },
   emptyStateContainer: {
@@ -301,11 +301,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyStateEmoji: {
-    fontSize: 80,
+    fontSize: 72,  // Mudança: 80 → 72px (Shotsy emoji size)
     marginBottom: 24,
   },
   emptyStateTitle: {
-    fontSize: 24,
+    fontSize: 22,  // Mudança: 24 → 22px (Shotsy title size)
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 12,

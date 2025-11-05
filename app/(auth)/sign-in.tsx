@@ -31,7 +31,11 @@ export default function SignInScreen() {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
+        // Aguardar um pouco para garantir que o usuário foi sincronizado
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // O index.tsx vai verificar o estado e redirecionar corretamente
+        // Usar router.push para voltar ao index que decide o destino
+        router.push('/');
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || 'Erro ao fazer login');

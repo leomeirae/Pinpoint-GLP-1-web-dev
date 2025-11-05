@@ -80,7 +80,7 @@ export const ShotCard: React.FC<ShotCardProps> = ({ shot, onDelete }) => {
       <View style={styles.actionsContainer}>
         <Animated.View style={[{ transform: [{ scale }] }]}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.editButton, { backgroundColor: colors.primary }]}
+            style={[styles.actionButton, styles.editButton, { backgroundColor: '#10B981' }]}  // Verde padrão para Edit (convenção UI)
             onPress={handleEdit}
           >
             <AppIcon name="pencil" size="md" color="#FFFFFF" />

@@ -1,14 +1,26 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
+import { VictoryLine, VictoryChart, VictoryAxis, VictoryArea } from 'victory';
 
 interface FluctuationsEducationScreenProps {
   onNext: () => void;
   onBack: () => void;
 }
+
+// Dados de exemplo mostrando flutuações típicas de peso
+const fluctuationData = [
+  { day: 1, weight: 80.0 },
+  { day: 2, weight: 81.2 }, // +1.2kg (retenção líquidos)
+  { day: 3, weight: 80.5 }, // -0.7kg
+  { day: 4, weight: 80.8 }, // +0.3kg
+  { day: 5, weight: 79.6 }, // -1.2kg (grande variação)
+  { day: 6, weight: 80.2 }, // +0.6kg
+  { day: 7, weight: 79.8 }, // -0.4kg (tendência geral: ↓)
+];
 
 export function FluctuationsEducationScreen({ onNext, onBack }: FluctuationsEducationScreenProps) {
   const colors = useShotsyColors();
@@ -23,15 +35,61 @@ export function FluctuationsEducationScreen({ onNext, onBack }: FluctuationsEduc
       nextButtonText="Entendi"
     >
       <View style={styles.content}>
-        <Text style={styles.emoji}>📊</Text>
-
         <ShotsyCard variant="elevated" style={styles.graphCard}>
           <Text style={[styles.graphTitle, { color: colors.text }]}>
             Flutuações típicas de peso
           </Text>
-          <View style={styles.graphPlaceholder}>
-            <View style={[styles.graphLine, { backgroundColor: currentAccent }]} />
-          </View>
+          
+          <VictoryChart
+            height={180}
+            width={Dimensions.get('window').width - 80}
+            padding={{ top: 20, bottom: 30, left: 50, right: 20 }}
+          >
+            {/* Área sombreada (±2kg zona normal) */}
+            <VictoryArea
+              data={[
+                { day: 1, y0: 78, y: 82 },
+                { day: 7, y0: 78, y: 82 },
+              ]}
+              style={{
+                data: { fill: colors.textMuted, opacity: 0.1 }
+              }}
+            />
+            
+            {/* Linha de peso com variações */}
+            <VictoryLine
+              data={fluctuationData}
+              x="day"
+              y="weight"
+              style={{
+                data: {
+                  stroke: currentAccent,
+                  strokeWidth: 3,
+                }
+              }}
+              interpolation="natural"
+            />
+            
+            {/* Eixos */}
+            <VictoryAxis
+              dependentAxis
+              tickFormat={(t) => `${t}kg`}
+              style={{
+                tickLabels: { fontSize: 10, fill: colors.textMuted },
+                grid: { stroke: colors.border, strokeDasharray: '2,2', strokeOpacity: 0.5 },
+                axis: { stroke: colors.border },
+              }}
+            />
+            <VictoryAxis
+              label="Dias"
+              style={{
+                axisLabel: { fontSize: 12, padding: 25, fill: colors.textSecondary },
+                tickLabels: { fontSize: 10, fill: colors.textMuted },
+                axis: { stroke: colors.border },
+              }}
+            />
+          </VictoryChart>
+          
           <Text style={[styles.graphCaption, { color: colors.textMuted }]}>
             Variações de até 2kg são completamente normais
           </Text>
@@ -91,10 +149,6 @@ const styles = StyleSheet.create({
   content: {
     gap: 20,
   },
-  emoji: {
-    fontSize: 64,
-    textAlign: 'center',
-  },
   graphCard: {
     padding: 20,
   },
@@ -104,21 +158,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  graphPlaceholder: {
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  graphLine: {
-    width: '100%',
-    height: 60,
-    borderRadius: 8,
-    opacity: 0.3,
-  },
   graphCaption: {
     fontSize: 13,
     textAlign: 'center',
+    marginTop: 8,
   },
   factorsCard: {
     padding: 20,

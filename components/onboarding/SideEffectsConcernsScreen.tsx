@@ -93,8 +93,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   option: {
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 16,  // Mudança: 12 → 16px (match Shotsy)
+    paddingVertical: 20,  // Mudança: separar padding vertical
+    paddingHorizontal: 16,  // Mudança: padding horizontal explícito
+    minHeight: 72,  // Mudança: 60 → 72px (match Shotsy)
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   optionLabel: {
-    fontSize: 17,
+    fontSize: 18,  // Mudança: 17 → 18px (match Shotsy)
     fontWeight: '500',
   },
   selectedCount: {

@@ -7,7 +7,7 @@ import { ShotsyCard } from '@/components/ui/shotsy-card';
 import { Ionicons } from '@expo/vector-icons';
 
 interface HealthDisclaimerScreenProps {
-  onNext: () => void;
+  onNext: (consentAccepted: boolean) => void;
   onBack: () => void;
 }
 
@@ -20,7 +20,7 @@ export function HealthDisclaimerScreen({ onNext, onBack }: HealthDisclaimerScree
     <OnboardingScreenBase
       title="Aviso importante sobre saúde"
       subtitle="Por favor, leia atentamente antes de continuar"
-      onNext={onNext}
+      onNext={() => onNext(accepted)}
       onBack={onBack}
       disableNext={!accepted}
       nextButtonText="Prosseguir"

@@ -93,8 +93,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   option: {
-    borderRadius: 16,
+    borderRadius: 12,  // Mudança: 16 → 12px (consistência design system)
     padding: 20,
+    minHeight: 100,  // Garantir altura adequada para opções com emoji + texto
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

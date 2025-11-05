@@ -97,8 +97,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    minHeight: 50,
+    paddingVertical: 12,  // Mudança: 14 → 12px (Shotsy vertical padding)
+    minHeight: 56,  // Mudança: 50 → 56px (Shotsy touch target, better UX)
   },
   leftContent: {
     flexDirection: 'row',

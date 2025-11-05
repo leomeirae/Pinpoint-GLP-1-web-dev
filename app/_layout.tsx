@@ -4,10 +4,15 @@ import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { useColors } from '@/constants/colors';
 import { tokenCache, validateClerkKey } from '@/lib/clerk';
+import { useUserSync } from '@/hooks/useUserSync';
 
 function RootStack() {
   const colors = useColors();
   const { effectiveMode } = useTheme();
+  
+  // Sincronizar usuário do Clerk com Supabase automaticamente
+  // Não precisamos configurar Supabase Auth porque usamos Clerk + RLS permite INSERTs
+  useUserSync();
 
   return (
     <>

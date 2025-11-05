@@ -1,31 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
+import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 
 interface CurrentWeightScreenProps {
   onNext: (data: { currentWeight: number; weightUnit: 'kg' | 'lb' }) => void;
   onBack: () => void;
 }
 
+// Gerar arrays para o picker
+const generateWholeNumbers = (min: number, max: number) => 
+  Array.from({ length: max - min + 1 }, (_, i) => i + min);
+
+const DECIMALS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const UNITS = ['kg', 'lb'] as const;
+
 export function CurrentWeightScreen({ onNext, onBack }: CurrentWeightScreenProps) {
   const colors = useShotsyColors();
   const { currentAccent } = useTheme();
+  
+  // Estado: 3 valores separados (inteiro, decimal, unidade)
+  const [wholeNumber, setWholeNumber] = useState(75);
+  const [decimal, setDecimal] = useState(0);
   const [unit, setUnit] = useState<'kg' | 'lb'>('kg');
-  const [weight, setWeight] = useState('');
 
   const handleNext = () => {
-    if (weight) {
-      const weightNum = parseFloat(weight);
-      if (!isNaN(weightNum) && weightNum > 0) {
-        onNext({ currentWeight: weightNum, weightUnit: unit });
-      }
-    }
+    const weight = wholeNumber + (decimal / 10);
+    onNext({ currentWeight: weight, weightUnit: unit });
   };
 
-  const isValid = weight && !isNaN(parseFloat(weight)) && parseFloat(weight) > 0;
+  const isValid = wholeNumber > 0;
 
   return (
     <OnboardingScreenBase
@@ -36,63 +45,85 @@ export function CurrentWeightScreen({ onNext, onBack }: CurrentWeightScreenProps
       disableNext={!isValid}
     >
       <View style={styles.content}>
-        <View style={styles.unitToggle}>
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              {
-                backgroundColor: unit === 'kg' ? currentAccent : colors.card,
-                borderColor: unit === 'kg' ? currentAccent : colors.border,
-              },
-            ]}
-            onPress={() => setUnit('kg')}
-          >
-            <Text
-              style={[
-                styles.unitButtonText,
-                { color: unit === 'kg' ? '#FFFFFF' : colors.text },
-              ]}
-            >
-              kg
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              {
-                backgroundColor: unit === 'lb' ? currentAccent : colors.card,
-                borderColor: unit === 'lb' ? currentAccent : colors.border,
-              },
-            ]}
-            onPress={() => setUnit('lb')}
-          >
-            <Text
-              style={[
-                styles.unitButtonText,
-                { color: unit === 'lb' ? '#FFFFFF' : colors.text },
-              ]}
-            >
-              lb
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ShotsyCard variant="elevated" style={styles.inputCard}>
+        <ShotsyCard variant="elevated" style={styles.pickerCard}>
           <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
             Peso atual
           </Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="decimal-pad"
-              placeholder={unit === 'kg' ? '75.0' : '165.0'}
-              placeholderTextColor={colors.textMuted}
+
+          {/* Container dos 3 pickers com fade effects */}
+          <View style={styles.pickerContainer}>
+            {/* Top Fade */}
+            <LinearGradient
+              colors={[colors.card, 'transparent']}
+              style={styles.fadeTop}
+              pointerEvents="none"
             />
-            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>
-              {unit}
-            </Text>
+
+            <View style={styles.pickersRow}>
+              {/* Picker 1: Parte inteira (30-200 kg ou 66-440 lb) */}
+              <View style={styles.pickerColumn}>
+                <Picker
+                  selectedValue={wholeNumber}
+                  onValueChange={(value) => {
+                    setWholeNumber(value);
+                    Haptics.selectionAsync();
+                  }}
+                  itemStyle={[styles.pickerItem, { color: colors.text }]}
+                >
+                  {generateWholeNumbers(
+                    unit === 'kg' ? 30 : 66,
+                    unit === 'kg' ? 200 : 440
+                  ).map((num) => (
+                    <Picker.Item key={num} label={`${num}`} value={num} />
+                  ))}
+                </Picker>
+              </View>
+
+              {/* Picker 2: Parte decimal (.0 - .9) */}
+              <View style={styles.pickerColumn}>
+                <Picker
+                  selectedValue={decimal}
+                  onValueChange={(value) => {
+                    setDecimal(value);
+                    Haptics.selectionAsync();
+                  }}
+                  itemStyle={[styles.pickerItem, { color: colors.text }]}
+                >
+                  {DECIMALS.map((dec) => (
+                    <Picker.Item key={dec} label={`.${dec}`} value={dec} />
+                  ))}
+                </Picker>
+              </View>
+
+              {/* Picker 3: Unidade (kg/lb) */}
+              <View style={styles.pickerColumn}>
+                <Picker
+                  selectedValue={unit}
+                  onValueChange={(value) => {
+                    setUnit(value);
+                    // Ajustar wholeNumber se mudar de unidade
+                    if (value === 'lb' && wholeNumber < 66) {
+                      setWholeNumber(165); // ~75kg
+                    } else if (value === 'kg' && wholeNumber > 200) {
+                      setWholeNumber(75);
+                    }
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  itemStyle={[styles.pickerItem, { color: colors.text }]}
+                >
+                  {UNITS.map((u) => (
+                    <Picker.Item key={u} label={u} value={u} />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Bottom Fade */}
+            <LinearGradient
+              colors={['transparent', colors.card]}
+              style={styles.fadeBottom}
+              pointerEvents="none"
+            />
           </View>
         </ShotsyCard>
 
@@ -114,46 +145,47 @@ const styles = StyleSheet.create({
   content: {
     gap: 24,
   },
-  unitToggle: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  unitButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  unitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  inputCard: {
+  pickerCard: {
     padding: 20,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 12,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 32,
-    fontWeight: '600',
     textAlign: 'center',
   },
-  inputSuffix: {
-    fontSize: 20,
-    fontWeight: '500',
+  pickerContainer: {
+    height: 200,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  pickersRow: {
+    flexDirection: 'row',
+    height: '100%',
+  },
+  pickerColumn: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  pickerItem: {
+    fontSize: 24,
+    fontWeight: '600',
+  },
+  fadeTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    zIndex: 1,
+  },
+  fadeBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+    zIndex: 1,
   },
   emoji: {
     fontSize: 64,

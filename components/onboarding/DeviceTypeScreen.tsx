@@ -75,8 +75,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   option: {
-    borderRadius: 16,
+    borderRadius: 12,  // Mudança: 16 → 12px (design system)
     padding: 20,
+    minHeight: 80,  // Maior por causa do padding 20px
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

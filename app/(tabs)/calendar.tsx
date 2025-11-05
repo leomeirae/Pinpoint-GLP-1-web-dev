@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   todayButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 12,  // Mudança: 10 → 12px (Shotsy vertical padding)
+    paddingHorizontal: 20,  // Mudança: 16 → 20px (Shotsy horizontal padding)
     borderRadius: 12,
     borderWidth: 1.5,
     alignItems: 'center',

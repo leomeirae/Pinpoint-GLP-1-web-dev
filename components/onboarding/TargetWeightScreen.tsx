@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
+import Slider from '@react-native-community/slider';
+import * as Haptics from 'expo-haptics';
 
 interface TargetWeightScreenProps {
   onNext: (data: { targetWeight: number }) => void;
@@ -13,6 +15,20 @@ interface TargetWeightScreenProps {
   startingWeight?: number;
   height?: number;
 }
+
+// Função auxiliar para calcular IMC
+const calculateBMI = (weightKg: number, heightCm: number) => {
+  const heightM = heightCm / 100;
+  return weightKg / (heightM * heightM);
+};
+
+// Função para categorizar IMC
+const getBMICategory = (bmi: number) => {
+  if (bmi < 18.5) return { label: 'Baixo Peso', color: '#A855F7' };
+  if (bmi < 25) return { label: 'Peso Normal', color: '#10B981' };
+  if (bmi < 30) return { label: 'Sobrepeso', color: '#F59E0B' };
+  return { label: 'Obesidade', color: '#EF4444' };
+};
 
 export function TargetWeightScreen({
   onNext,
@@ -24,30 +40,24 @@ export function TargetWeightScreen({
 }: TargetWeightScreenProps) {
   const colors = useShotsyColors();
   const { currentAccent } = useTheme();
-  const [weight, setWeight] = useState('');
+  
+  // Calcular range inteligente baseado no peso atual
+  const minWeight = Math.max(40, Math.floor(currentWeight * 0.7)); // -30% do atual
+  const maxWeight = Math.ceil(currentWeight * 0.95); // -5% do atual
+  
+  const [targetWeight, setTargetWeight] = useState(
+    Math.round((minWeight + maxWeight) / 2)
+  );
 
   const handleNext = () => {
-    if (weight) {
-      const weightNum = parseFloat(weight);
-      if (!isNaN(weightNum) && weightNum > 0) {
-        onNext({ targetWeight: weightNum });
-      }
-    }
+    onNext({ targetWeight });
   };
 
-  const calculateBMI = (weightKg: number, heightCm: number) => {
-    const heightM = heightCm / 100;
-    return (weightKg / (heightM * heightM)).toFixed(1);
-  };
+  const targetBMI = calculateBMI(targetWeight, height);
+  const bmiCategory = getBMICategory(targetBMI);
+  const weightToLose = currentWeight - targetWeight;
 
-  const targetWeightNum = parseFloat(weight);
-  const showProgress = !isNaN(targetWeightNum) && targetWeightNum > 0;
-
-  const weightToLose = currentWeight - targetWeightNum;
-  const currentBMI = calculateBMI(currentWeight, height);
-  const targetBMI = showProgress ? calculateBMI(targetWeightNum, height) : '0';
-
-  const isValid = weight && !isNaN(targetWeightNum) && targetWeightNum > 0 && targetWeightNum < currentWeight;
+  const isValid = targetWeight < currentWeight && targetWeight >= minWeight;
 
   return (
     <OnboardingScreenBase
@@ -58,101 +68,122 @@ export function TargetWeightScreen({
       disableNext={!isValid}
     >
       <View style={styles.content}>
-        <ShotsyCard variant="elevated" style={styles.inputCard}>
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>
-            Peso meta
+        {/* Main Slider Card */}
+        <ShotsyCard variant="elevated" style={styles.sliderCard}>
+          {/* Big Weight Display */}
+          <Text style={[styles.weightValue, { color: colors.text }]}>
+            {targetWeight.toFixed(1)}{weightUnit}
           </Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="decimal-pad"
-              placeholder={weightUnit === 'kg' ? '70.0' : '154.0'}
-              placeholderTextColor={colors.textMuted}
+
+          {/* Slider */}
+          <View style={styles.sliderContainer}>
+            <Slider
+              style={styles.slider}
+              minimumValue={minWeight}
+              maximumValue={maxWeight}
+              step={0.5}
+              value={targetWeight}
+              onValueChange={(value) => {
+                setTargetWeight(Math.round(value * 2) / 2); // Round to 0.5
+                Haptics.selectionAsync();
+              }}
+              minimumTrackTintColor={currentAccent}
+              maximumTrackTintColor={colors.border}
+              thumbTintColor={currentAccent}
             />
-            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>
-              {weightUnit}
+            {/* Weight Range Labels */}
+            <View style={styles.rangeLabels}>
+              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>
+                {minWeight}{weightUnit}
+              </Text>
+              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>
+                {maxWeight}{weightUnit}
+              </Text>
+            </View>
+          </View>
+
+          {/* BMI Display */}
+          <View style={styles.bmiDisplay}>
+            <Text style={[styles.bmiValue, { color: bmiCategory.color }]}>
+              IMC: {targetBMI.toFixed(1)}
             </Text>
+            <View
+              style={[
+                styles.bmiPill,
+                { backgroundColor: bmiCategory.color + '20' },
+              ]}
+            >
+              <Text style={[styles.bmiLabelText, { color: bmiCategory.color }]}>
+                {bmiCategory.label}
+              </Text>
+            </View>
+          </View>
+
+          {/* BMI Category Bar */}
+          <View style={styles.bmiBarContainer}>
+            <View style={styles.bmiBar}>
+              {/* Underweight */}
+              <View style={[styles.bmiSegment, { flex: 1.85, backgroundColor: '#A855F7' }]} />
+              {/* Normal */}
+              <View style={[styles.bmiSegment, { flex: 0.65, backgroundColor: '#10B981' }]} />
+              {/* Overweight */}
+              <View style={[styles.bmiSegment, { flex: 0.5, backgroundColor: '#F59E0B' }]} />
+              {/* Obese */}
+              <View style={[styles.bmiSegment, { flex: 1, backgroundColor: '#EF4444' }]} />
+              
+              {/* Current BMI Indicator */}
+              <View
+                style={[
+                  styles.bmiIndicator,
+                  {
+                    left: `${Math.min(Math.max((targetBMI / 40) * 100, 0), 100)}%`,
+                    backgroundColor: currentAccent,
+                  },
+                ]}
+              />
+            </View>
+
+            {/* Labels */}
+            <View style={styles.bmiLabels}>
+              <View style={styles.bmiLabelItem}>
+                <Text style={[styles.bmiCategoryLabel, { color: '#A855F7' }]}>Baixo</Text>
+                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>&lt;18.5</Text>
+              </View>
+              <View style={styles.bmiLabelItem}>
+                <Text style={[styles.bmiCategoryLabel, { color: '#10B981' }]}>Normal</Text>
+                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>18.5-25</Text>
+              </View>
+              <View style={styles.bmiLabelItem}>
+                <Text style={[styles.bmiCategoryLabel, { color: '#F59E0B' }]}>Alto</Text>
+                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>25-30</Text>
+              </View>
+              <View style={styles.bmiLabelItem}>
+                <Text style={[styles.bmiCategoryLabel, { color: '#EF4444' }]}>Muito Alto</Text>
+                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>30+</Text>
+              </View>
+            </View>
           </View>
         </ShotsyCard>
 
-        {showProgress && (
-          <>
-            <ShotsyCard style={styles.progressCard}>
-              <Text style={[styles.progressTitle, { color: colors.text }]}>
-                Sua jornada
-              </Text>
-              <View style={styles.progressBar}>
-                <View style={styles.progressLabels}>
-                  <View style={styles.progressLabel}>
-                    <Text style={[styles.progressValue, { color: colors.text }]}>
-                      {startingWeight.toFixed(1)}
-                    </Text>
-                    <Text style={[styles.progressLabelText, { color: colors.textMuted }]}>
-                      Início
-                    </Text>
-                  </View>
-                  <View style={styles.progressLabel}>
-                    <Text style={[styles.progressValue, { color: currentAccent }]}>
-                      {currentWeight.toFixed(1)}
-                    </Text>
-                    <Text style={[styles.progressLabelText, { color: colors.textMuted }]}>
-                      Atual
-                    </Text>
-                  </View>
-                  <View style={styles.progressLabel}>
-                    <Text style={[styles.progressValue, { color: colors.text }]}>
-                      {targetWeightNum.toFixed(1)}
-                    </Text>
-                    <Text style={[styles.progressLabelText, { color: colors.textMuted }]}>
-                      Meta
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        backgroundColor: currentAccent,
-                        width: `${((startingWeight - currentWeight) / (startingWeight - targetWeightNum)) * 100}%`,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-              <Text style={[styles.progressGoal, { color: colors.textSecondary }]}>
-                Meta: perder {weightToLose.toFixed(1)} {weightUnit}
-              </Text>
-            </ShotsyCard>
-
-            <ShotsyCard style={styles.bmiCard}>
-              <Text style={[styles.bmiTitle, { color: colors.text }]}>
-                IMC (Índice de Massa Corporal)
-              </Text>
-              <View style={styles.bmiRow}>
-                <View style={styles.bmiItem}>
-                  <Text style={[styles.bmiValue, { color: colors.textSecondary }]}>
-                    {currentBMI}
-                  </Text>
-                  <Text style={[styles.bmiLabel, { color: colors.textMuted }]}>
-                    Atual
-                  </Text>
-                </View>
-                <Text style={[styles.bmiArrow, { color: colors.textMuted }]}>→</Text>
-                <View style={styles.bmiItem}>
-                  <Text style={[styles.bmiValue, { color: currentAccent }]}>
-                    {targetBMI}
-                  </Text>
-                  <Text style={[styles.bmiLabel, { color: colors.textMuted }]}>
-                    Meta
-                  </Text>
-                </View>
-              </View>
-            </ShotsyCard>
-          </>
-        )}
+        {/* Progress Summary */}
+        <ShotsyCard style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+              Perder:
+            </Text>
+            <Text style={[styles.summaryValue, { color: currentAccent }]}>
+              {weightToLose.toFixed(1)} {weightUnit}
+            </Text>
+          </View>
+          <View style={styles.summaryRow}>
+            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+              Do peso atual:
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>
+              {currentWeight.toFixed(1)} {weightUnit}
+            </Text>
+          </View>
+        </ShotsyCard>
 
         <Text style={styles.emoji}>🎯</Text>
       </View>
@@ -164,100 +195,103 @@ const styles = StyleSheet.create({
   content: {
     gap: 24,
   },
-  inputCard: {
-    padding: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 12,
-  },
-  inputRow: {
-    flexDirection: 'row',
+  sliderCard: {
+    padding: 24,
     alignItems: 'center',
-    gap: 12,
   },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 32,
-    fontWeight: '600',
-    textAlign: 'center',
+  weightValue: {
+    fontSize: 48,
+    fontWeight: '700',
+    marginBottom: 24,
   },
-  inputSuffix: {
-    fontSize: 20,
-    fontWeight: '500',
+  sliderContainer: {
+    width: '100%',
+    marginBottom: 24,
   },
-  progressCard: {
-    padding: 20,
+  slider: {
+    width: '100%',
+    height: 40,
   },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-  },
-  progressBar: {
-    marginBottom: 12,
-  },
-  progressLabels: {
+  rangeLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingHorizontal: 4,
+    marginTop: 4,
   },
-  progressLabel: {
-    alignItems: 'center',
-  },
-  progressValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  progressLabelText: {
+  rangeLabel: {
     fontSize: 12,
-    marginTop: 2,
   },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressGoal: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  bmiCard: {
-    padding: 20,
-  },
-  bmiTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  bmiRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+  bmiDisplay: {
     alignItems: 'center',
-    gap: 24,
-  },
-  bmiItem: {
-    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
   },
   bmiValue: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
-  bmiLabel: {
-    fontSize: 12,
-    marginTop: 4,
+  bmiPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  bmiArrow: {
-    fontSize: 24,
+  bmiLabelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bmiBarContainer: {
+    width: '100%',
+  },
+  bmiBar: {
+    flexDirection: 'row',
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 12,
+    position: 'relative',
+  },
+  bmiSegment: {
+    height: '100%',
+  },
+  bmiIndicator: {
+    position: 'absolute',
+    top: -4,
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+    marginLeft: -2,
+  },
+  bmiLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  bmiLabelItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  bmiCategoryLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  bmiRange: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  summaryCard: {
+    padding: 20,
+    gap: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 15,
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '700',
   },
   emoji: {
     fontSize: 64,

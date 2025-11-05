@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     padding: 20,
-    borderRadius: 16,
+    borderRadius: 12,  // Mudança: 16 → 12px (design system)
     alignItems: 'center',
     marginTop: 8,
   },

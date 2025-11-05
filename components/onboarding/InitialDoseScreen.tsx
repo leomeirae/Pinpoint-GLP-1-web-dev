@@ -90,8 +90,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   option: {
-    borderRadius: 16,
+    borderRadius: 12,  // Mudança: 16 → 12px (design system)
     padding: 16,
+    minHeight: 60,  // Touch target adequado
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

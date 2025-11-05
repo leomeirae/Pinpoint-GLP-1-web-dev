@@ -137,7 +137,7 @@ function formatTime(date: Date): string {
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 12,  // Mudança: 16 → 12px (consistência com ShotCard e design system)
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,

@@ -51,7 +51,7 @@ export const EstimatedLevelsChart: React.FC = () => {
 
     const periodConfig = PERIOD_TABS.find(p => p.key === selectedPeriod)!;
     const now = new Date();
-    
+
     // Convert applications to pharmacokinetics format
     const medApplications = applications.map(app => ({
       dose: app.dosage,

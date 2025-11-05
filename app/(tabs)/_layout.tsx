@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { ClipboardText, Syringe, ChartLineUp, Calendar, GearSix } from 'phosphor-react-native';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useAuth } from '@/lib/clerk';
@@ -9,12 +9,19 @@ export default function Layout() {
   const colors = useShotsyColors();
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const hasRedirectedRef = useRef(false);
 
-  // Auth Guard: Redireciona para tela inicial se não estiver autenticado
+  // Auth Guard: Redireciona para welcome se não estiver autenticado
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      console.log('User not authenticated, redirecting to welcome...');
-      router.replace('/');
+    if (isLoaded) {
+      if (!isSignedIn && !hasRedirectedRef.current) {
+        console.log('User not authenticated, redirecting to welcome...');
+        hasRedirectedRef.current = true;
+        router.replace('/(auth)/welcome');
+      } else if (isSignedIn) {
+        // Resetar flag quando usuário está autenticado
+        hasRedirectedRef.current = false;
+      }
     }
   }, [isSignedIn, isLoaded]);
 
@@ -102,6 +109,22 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
+        name="add-nutrition"
+        options={{
+          title: 'IA',
+          tabBarIcon: ({ color, focused }) => (
+            <Text style={{
+              fontSize: 16,
+              fontWeight: focused ? '700' : '600',
+              color: color,
+              letterSpacing: 0.5,
+            }}>
+              IA
+            </Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Ajustes',
@@ -140,6 +163,15 @@ export default function Layout() {
         name="profile"
         options={{ href: null }}
       />
+      <Tabs.Screen
+        name="faq"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="premium"
+        options={{ href: null }}
+      />
+      {/* Removido add-nutrition daqui pois agora está no tab bar */}
     </Tabs>
   );
 }

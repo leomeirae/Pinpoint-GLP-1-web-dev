@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyIcon: {
-    fontSize: 80,
+    fontSize: 72,  // Mudança: 80 → 72px (Shotsy icon size standard)
     marginBottom: 24,
   },
   emptyTitle: {

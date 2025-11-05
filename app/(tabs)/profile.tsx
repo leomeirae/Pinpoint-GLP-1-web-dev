@@ -36,8 +36,8 @@ export default function ProfileScreen() {
               await signOut();
               console.log('Clerk sign out successful');
               
-              // Redirect to login
-              router.replace('/');
+              // Redirect to welcome (carrossel)
+              router.replace('/(auth)/welcome');
               console.log('Redirected to login');
             } catch (error) {
               console.error('Error signing out:', error);
