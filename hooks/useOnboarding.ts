@@ -4,6 +4,9 @@
 import { useAuth } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useOnboarding');
 
 export interface OnboardingData {
   // Dados de medicação
@@ -42,8 +45,11 @@ export function useOnboarding() {
     let retries = 0;
     
     while (!userIdSupabase && retries < 10) {
-      console.log(`⏳ Aguardando usuário ser criado no Supabase... (tentativa ${retries + 1})`);
-      
+      logger.debug('Waiting for user to be created in Supabase', {
+        attempt: retries + 1,
+        maxAttempts: 10
+      });
+
       const { data: userData, error: fetchError } = await supabase
         .from('users')
         .select('id')
@@ -52,7 +58,7 @@ export function useOnboarding() {
 
       if (!fetchError && userData?.id) {
         userIdSupabase = userData.id;
-        console.log('✅ Usuário encontrado no Supabase:', userIdSupabase);
+        logger.info('User found in Supabase', { userIdSupabase });
         break;
       }
 
@@ -142,7 +148,7 @@ export function useOnboarding() {
         .eq('id', userIdSupabase);
 
       if (userError) {
-        console.error('Error updating user:', userError);
+        logger.error('Error updating user', userError);
         throw userError;
       }
 
@@ -161,7 +167,7 @@ export function useOnboarding() {
           });
 
         if (medError) {
-          console.error('Error creating medication:', medError);
+          logger.error('Error creating medication', medError);
           throw medError;
         }
       }
@@ -193,7 +199,7 @@ export function useOnboarding() {
             });
 
           if (weightError) {
-            console.error('Error creating initial weight log:', weightError);
+            logger.error('Error creating initial weight log', weightError);
             // Não falhar se já existir registro para essa data
             if (weightError.code !== '23505') { // Unique violation
               throw weightError;
@@ -216,7 +222,7 @@ export function useOnboarding() {
 
       return { success: true };
     } catch (error) {
-      console.error('Error saving onboarding data:', error);
+      logger.error('Error saving onboarding data', error);
       trackEvent('error_occurred', {
         error_code: 'ONBOARDING_SAVE_ERROR',
         error_message: error instanceof Error ? error.message : 'Unknown error',

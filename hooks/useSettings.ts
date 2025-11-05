@@ -1,3 +1,6 @@
+import { createLogger } from "@/lib/logger";
+const logger = createLogger("useSettings");
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
@@ -92,7 +95,7 @@ export const useSettings = () => {
         updated_at: new Date(data.updated_at),
       });
     } catch (err) {
-      console.error('Error fetching settings:', err);
+      logger.error('Error fetching settings:', err);
       setError(err as Error);
       
       // Fallback: usar configurações padrão se houver erro
@@ -127,7 +130,7 @@ export const useSettings = () => {
       if (updateError) throw updateError;
       await fetchSettings();
     } catch (err) {
-      console.error('Error updating settings:', err);
+      logger.error('Error updating settings:', err);
       setError(err as Error);
       throw err;
     }
@@ -162,7 +165,7 @@ export const useSettings = () => {
       }
       await fetchSettings();
     } catch (err) {
-      console.error('Error creating settings:', err);
+      logger.error('Error creating settings:', err);
       setError(err as Error);
       
       // Se falhou por RLS, não lançar erro (já configuramos fallback acima)
@@ -178,7 +181,7 @@ export const useSettings = () => {
       setError(null);
       await updateSettings(DEFAULT_SETTINGS);
     } catch (err) {
-      console.error('Error resetting settings:', err);
+      logger.error('Error resetting settings:', err);
       setError(err as Error);
       throw err;
     }

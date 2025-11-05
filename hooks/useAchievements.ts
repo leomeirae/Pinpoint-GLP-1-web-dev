@@ -1,3 +1,6 @@
+import { createLogger } from "@/lib/logger";
+const logger = createLogger("useAchievements");
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
@@ -113,7 +116,7 @@ export function useAchievements() {
       if (fetchError) throw fetchError;
       setAchievements(data || []);
     } catch (err: any) {
-      console.error('Error fetching achievements:', err);
+      logger.error('Error fetching achievements:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -133,7 +136,7 @@ export function useAchievements() {
     // Buscar definição da conquista
     const definition = ACHIEVEMENT_DEFINITIONS.find(a => a.type === achievementType);
     if (!definition) {
-      console.error('Achievement definition not found:', achievementType);
+      logger.error('Achievement definition not found:', achievementType);
       return;
     }
 
@@ -168,7 +171,7 @@ export function useAchievements() {
       // Aqui poderia adicionar uma notificação visual
       return data;
     } catch (err: any) {
-      console.error('Error unlocking achievement:', err);
+      logger.error('Error unlocking achievement:', err);
     }
   }
 

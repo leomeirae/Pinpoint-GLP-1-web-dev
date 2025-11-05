@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth, useUser } from '@/lib/clerk';
 import { supabase } from '@/lib/supabase';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useUserSync');
 
 // Global state to prevent multiple simultaneous syncs
 const syncState = {
@@ -31,7 +34,7 @@ export function useUserSync() {
 
     // Se já tem uma sincronização em andamento, aguardar
     if (syncState.inProgress) {
-      console.log('⏸️ Sync already in progress, waiting...');
+      logger.debug('Sync already in progress, waiting...');
       const checkInterval = setInterval(() => {
         if (!syncState.inProgress) {
           clearInterval(checkInterval);
@@ -52,7 +55,7 @@ export function useUserSync() {
     const syncUser = async () => {
       // Prevenir múltiplas chamadas simultâneas
       if (syncState.inProgress) {
-        console.log('🔒 Sync already in progress, skipping');
+        logger.debug('Sync already in progress, skipping');
         setIsLoading(false);
         return;
       }
@@ -63,11 +66,17 @@ export function useUserSync() {
         setIsLoading(true);
         setError(null);
 
-        console.log('🔄 Syncing user with Supabase...', { userId, retryCount: retryCountRef.current, hasUser: !!user });
+        logger.info('Syncing user with Supabase', {
+          userId,
+          retryCount: retryCountRef.current,
+          hasUser: !!user
+        });
 
         // Se user ainda não estiver disponível, tentar novamente depois
         if (!user && retryCountRef.current < 5) {
-          console.log('⏳ Clerk user not ready yet, waiting...', retryCountRef.current);
+          logger.debug('Clerk user not ready yet, waiting', {
+            retryCount: retryCountRef.current
+          });
           retryCountRef.current++;
           syncState.inProgress = false; // Liberar para retry
           retryTimeoutRef.current = setTimeout(() => {
@@ -80,7 +89,7 @@ export function useUserSync() {
 
         // Se ainda não tem user após todas as tentativas, criar com dados mínimos
         if (!user) {
-          console.warn('⚠️ Clerk user still not available after retries, creating with minimal data');
+          logger.warn('Clerk user still not available after retries, creating with minimal data');
         }
 
         // Check if user exists in Supabase
@@ -91,21 +100,21 @@ export function useUserSync() {
           .maybeSingle();
 
         if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error('❌ Error fetching user:', fetchError);
+          logger.error('Error fetching user', fetchError);
           throw fetchError;
         }
 
         // If user doesn't exist, create it
         if (!existingUser) {
-          console.log('➕ Creating user in Supabase...');
-          
+          logger.info('Creating user in Supabase', { userId });
+
           const userData = {
             clerk_id: userId,
             email: user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || `${userId}@clerk.local`,
             name: user?.fullName || user?.firstName || null,
           };
-          
-          console.log('📝 User data to insert:', userData);
+
+          logger.debug('User data to insert', { email: userData.email, name: userData.name });
           
           const { data: newUser, error: insertError } = await supabase
             .from('users')
@@ -116,18 +125,19 @@ export function useUserSync() {
           if (insertError) {
             // Se erro é de duplicata (usuário já foi criado por outra chamada), ignorar
             if (insertError.code === '23505') {
-              console.log('ℹ️ User already exists (created by another call), continuing...');
+              logger.info('User already exists (created by another call), continuing');
             } else {
-              console.error('❌ Insert error:', insertError);
-              console.error('❌ Error code:', insertError.code);
-              console.error('❌ Error message:', insertError.message);
+              logger.error('Insert error', insertError, {
+                code: insertError.code,
+                message: insertError.message
+              });
               throw insertError;
             }
           } else {
-            console.log('✅ User created successfully in Supabase:', newUser?.id);
+            logger.info('User created successfully in Supabase', { userId: newUser?.id });
           }
         } else {
-          console.log('✅ User already exists in Supabase:', existingUser.id);
+          logger.info('User already exists in Supabase', { userId: existingUser.id });
           
           // Update user data if needed (só se user estiver disponível e dados mudaram)
           if (user) {
@@ -146,9 +156,9 @@ export function useUserSync() {
                 .eq('clerk_id', userId);
 
               if (updateError) {
-                console.warn('⚠️ Error updating user:', updateError);
+                logger.warn('Error updating user', updateError);
               } else {
-                console.log('✅ User updated successfully');
+                logger.info('User updated successfully');
               }
             }
           }
@@ -159,7 +169,7 @@ export function useUserSync() {
         hasSyncedRef.current = true;
 
       } catch (err) {
-        console.error('❌ Error syncing user:', err);
+        logger.error('Error syncing user', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to sync user';
         setError(errorMessage);
       } finally {
