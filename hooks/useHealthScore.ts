@@ -41,7 +41,7 @@ export const useHealthScore = () => {
         await calculateTodayScore();
       }
     } catch (err) {
-      console.error('Error fetching health score:', err);
+      logger.error('Error fetching health score', err as Error);
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export const useHealthScore = () => {
         await fetchScore();
       }
     } catch (err) {
-      console.error('Error calculating score:', err);
+      logger.error('Error calculating score', err as Error);
     }
   };
 

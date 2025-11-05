@@ -94,7 +94,7 @@ export function useStreaks() {
 
       await refetchUser();
     } catch (error) {
-      console.error('Error calculating streaks:', error);
+      logger.error('Error calculating streaks', error as Error);
     } finally {
       setLoading(false);
     }

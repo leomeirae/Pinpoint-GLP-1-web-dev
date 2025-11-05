@@ -34,7 +34,7 @@ export function useMedicationApplications() {
       if (fetchError) throw fetchError;
       setApplications(data || []);
     } catch (err: any) {
-      console.error('Error fetching applications:', err);
+      logger.error('Error fetching applications', err as Error, { message: err.message });
       setError(err.message);
     } finally {
       setLoading(false);

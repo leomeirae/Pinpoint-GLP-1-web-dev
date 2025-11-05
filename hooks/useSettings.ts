@@ -73,7 +73,7 @@ export const useSettings = () => {
         
         // Se erro é de RLS, usar configurações padrão localmente
         if (fetchError.code === '42501') {
-          console.warn('⚠️ RLS policy error on settings, using default settings locally');
+          logger.warn('RLS policy error on settings, using default settings locally');
           setSettings({
             id: 'temp',
             user_id: user.id,
@@ -100,7 +100,7 @@ export const useSettings = () => {
       
       // Fallback: usar configurações padrão se houver erro
       if (user) {
-        console.warn('⚠️ Using default settings as fallback');
+        logger.warn('Using default settings as fallback');
         setSettings({
           id: 'temp',
           user_id: user.id,
@@ -151,7 +151,7 @@ export const useSettings = () => {
       if (insertError) {
         // Se erro é de RLS, usar configurações padrão localmente e não lançar erro
         if (insertError.code === '42501') {
-          console.warn('⚠️ RLS policy error creating settings, using default settings locally');
+          logger.warn('RLS policy error creating settings, using default settings locally');
           setSettings({
             id: 'temp',
             user_id: user.id,

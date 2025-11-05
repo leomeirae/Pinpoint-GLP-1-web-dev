@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useUser } from './useUser';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('useNutrition');
 
 export interface DailyNutrition {
   id: string;
@@ -63,7 +66,7 @@ export const useNutrition = () => {
 
       setNutrition(parsedData);
     } catch (err) {
-      console.error('Error fetching nutrition:', err);
+      logger.error('Error fetching nutrition', err as Error);
       setError(err as Error);
     } finally {
       setLoading(false);
@@ -138,7 +141,7 @@ export const useNutrition = () => {
       if (upsertError) throw upsertError;
       await fetchNutrition();
     } catch (err) {
-      console.error('Error creating/updating nutrition:', err);
+      logger.error('Error creating or updating nutrition', err as Error);
       setError(err as Error);
       throw err;
     }
@@ -164,7 +167,7 @@ export const useNutrition = () => {
       if (deleteError) throw deleteError;
       await fetchNutrition();
     } catch (err) {
-      console.error('Error deleting nutrition:', err);
+      logger.error('Error deleting nutrition', err as Error);
       setError(err as Error);
       throw err;
     }

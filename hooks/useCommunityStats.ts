@@ -49,7 +49,7 @@ export function useCommunityStats() {
         .single();
 
       if (error || !data) {
-        console.log('Sem dados suficientes da comunidade');
+        logger.debug('Insufficient community data available');
         return;
       }
 
@@ -99,7 +99,7 @@ export function useCommunityStats() {
         emoji,
       });
     } catch (error) {
-      console.error('Error fetching community stats:', error);
+      logger.error('Error fetching community stats', error as Error);
     } finally {
       setLoading(false);
     }

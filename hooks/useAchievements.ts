@@ -129,7 +129,7 @@ export function useAchievements() {
     // Verificar se já tem essa conquista
     const exists = achievements.some(a => a.type === achievementType);
     if (exists) {
-      console.log('Achievement already unlocked:', achievementType);
+      logger.debug('Achievement already unlocked', { achievementType });
       return;
     }
 
@@ -141,7 +141,7 @@ export function useAchievements() {
     }
 
     try {
-      console.log('Unlocking achievement:', achievementType);
+      logger.info('Unlocking achievement', { achievementType });
 
       const newAchievement: InsertAchievement = {
         type: definition.type,
@@ -159,13 +159,13 @@ export function useAchievements() {
       if (error) {
         // Se erro for de constraint unique, é porque já existe
         if (error.code === '23505') {
-          console.log('Achievement already exists (race condition)');
+          logger.debug('Achievement already exists (race condition)');
           return;
         }
         throw error;
       }
 
-      console.log('Achievement unlocked!', data);
+      logger.info('Achievement unlocked', { data });
       await fetchAchievements();
       
       // Aqui poderia adicionar uma notificação visual
