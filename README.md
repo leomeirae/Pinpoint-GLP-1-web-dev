@@ -1,4 +1,4 @@
-# Mounjaro Tracker
+# Pinpoint GLP-1
 
 **Aplicativo para acompanhamento de medicamentos GLP-1 (Mounjaro, Ozempic, Saxenda, Wegovy)**
 
@@ -6,7 +6,7 @@
 
 ## 📱 Sobre o Projeto
 
-O Mounjaro Tracker é um aplicativo React Native desenvolvido com Expo que ajuda usuários a acompanhar suas aplicações de medicamentos GLP-1, monitorar progresso de peso, registrar efeitos colaterais e manter um histórico completo de sua jornada.
+O Pinpoint GLP-1 é um aplicativo React Native desenvolvido com Expo que ajuda usuários a acompanhar suas aplicações de medicamentos GLP-1, monitorar progresso de peso, registrar efeitos colaterais e manter um histórico completo de sua jornada.
 
 ### Funcionalidades Principais
 
@@ -70,8 +70,8 @@ O Mounjaro Tracker é um aplicativo React Native desenvolvido com Expo que ajuda
 
 ```bash
 # Clone o repositório
-git clone https://github.com/leomeirae/mounjaro-tracker.git
-cd mounjaro-tracker
+git clone https://github.com/leomeirae/Pinpoint-GLP-1.git
+cd Pinpoint-GLP-1
 
 # Instale dependências
 npm install
@@ -95,7 +95,7 @@ npx expo start
 ## 📁 Estrutura do Projeto
 
 ```
-mounjaro-tracker/
+pinpoint-glp-1/
 ├── app/                    # Expo Router (file-based routing)
 │   ├── (auth)/            # Telas de autenticação
 │   ├── (tabs)/            # Telas principais (tabs)
@@ -182,8 +182,8 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para de
 ## 📞 Contato
 
 - **Desenvolvedor:** Leonardo Meira
-- **Email:** leo@mounjarotracker.app
-- **Website:** [mounjarotracker.app](https://mounjarotracker.app)
+- **Email:** leo@pinpointglp1.app
+- **GitHub:** [github.com/leomeirae/Pinpoint-GLP-1](https://github.com/leomeirae/Pinpoint-GLP-1)
 
 ---
 

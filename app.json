@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "Mounjaro Tracker",
-    "slug": "mounjaro-tracker",
+    "name": "Pinpoint GLP-1",
+    "slug": "pinpoint-glp-1",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "scheme": "mounjarotracker",
+    "scheme": "pinpointglp1",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -17,14 +17,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mounjarotracker.app"
+      "bundleIdentifier": "com.pinpointglp1.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
-      "package": "com.mounjarotracker.app"
+      "package": "com.pinpointglp1.app"
     },
     "plugins": [
       "expo-router",
