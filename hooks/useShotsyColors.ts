@@ -1,4 +1,5 @@
 import { useTheme } from '@/lib/theme-context';
+import { ACCENT_COLORS } from '@/constants/ShotsyThemes';
 
 export function useColors() {
   const { effectiveMode, colors } = useTheme();
@@ -7,6 +8,7 @@ export function useColors() {
   return {
     // Backgrounds
     background: isDark ? colors.backgroundDark : colors.backgroundLight,
+    backgroundSecondary: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
     card: isDark ? colors.cardDark : colors.cardLight,
     cardSecondary: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
     backgroundLight: colors.backgroundLight,
@@ -40,6 +42,15 @@ export function useColors() {
     primary: colors.primary,
     primaryDark: colors.primaryDark,
     primaryLight: colors.primaryLight,
+
+    // Accent colors
+    accentPurple: ACCENT_COLORS.purple,
+    accentBlue: ACCENT_COLORS.blue,
+    accentGreen: '#10B981',
+    accentOrange: ACCENT_COLORS.orange,
+    accentPink: ACCENT_COLORS.pink,
+    accentYellow: ACCENT_COLORS.yellow,
+    accentRed: '#EF4444',
 
     // Mode
     isDark,
