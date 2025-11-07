@@ -112,7 +112,7 @@ export const BasicInfoStep: React.FC<BasicInfoStepProps> = ({ onComplete }) => {
         {/* Welcome Message */}
         <View style={styles.welcomeBox}>
           <Text style={styles.emoji}>👋</Text>
-          <Text style={styles.welcomeText}>Let's personalize Shotsy for you!</Text>
+          <Text style={styles.welcomeText}>Let's personalize Pinpoint for you!</Text>
         </View>
 
         {/* Form */}

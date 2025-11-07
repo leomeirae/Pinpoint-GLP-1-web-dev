@@ -70,11 +70,15 @@ export default function VerifyEmailScreen() {
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
 
+        logger.info('Email verified successfully, session created');
+
         // Aguardar um pouco para garantir que o usuário foi criado no Supabase
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Redirecionar para index.tsx que vai decidir baseado no status de onboarding
-        // Isso permite que usuários retornando pulem o onboarding
+        // ✅ CRITICAL FIX: Let app/index.tsx decide routing based on onboarding_completed
+        // Don't hardcode redirect to onboarding - this was causing returning users
+        // to be forced through onboarding again
+        logger.info('Redirecting to root - app/index.tsx will handle routing based on user state');
         router.replace('/');
       } else {
         setError(`Verificação incompleta. Status: ${result.status}`);

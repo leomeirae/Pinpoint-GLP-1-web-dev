@@ -34,6 +34,12 @@ interface User {
 const userCache: Record<string, { user: User | null; timestamp: number }> = {};
 const CACHE_DURATION = 2000; // 2 segundos
 
+// Function to clear cache (useful for logout)
+export function clearUserCache() {
+  Object.keys(userCache).forEach((key) => delete userCache[key]);
+  logger.info('User cache cleared');
+}
+
 export function useUser() {
   const { userId } = useAuth();
   const [user, setUser] = useState<User | null>(null);
@@ -105,7 +111,13 @@ export function useUser() {
           setUser(null);
         }
       } else {
-        logger.info('User fetched successfully', { userId: data?.id });
+        logger.info('User fetched successfully', {
+          userId: data?.id,
+          email: data?.email,
+          onboarding_completed: data?.onboarding_completed,
+          has_onboarding_field: 'onboarding_completed' in (data || {}),
+          clerk_id: data?.clerk_id,
+        });
         setUser(data);
 
         // Atualizar cache

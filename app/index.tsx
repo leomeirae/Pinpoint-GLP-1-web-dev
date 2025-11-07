@@ -17,19 +17,26 @@ export default function IndexScreen() {
   const colors = useColors();
   const { isSignedIn, isLoaded } = useAuth();
   const { user, loading: userLoading } = useUser();
-  const { isLoading: syncLoading } = useUserSync();
+  const { syncStatus } = useUserSync();
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
   const [waitTime, setWaitTime] = useState(0);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded) {
+      logger.debug('Clerk not loaded yet, waiting...');
+      return;
+    }
 
     // Evitar múltiplos redirecionamentos que podem causar loops
-    if (hasRedirectedRef.current) return;
+    if (hasRedirectedRef.current) {
+      logger.debug('Already redirected, skipping');
+      return;
+    }
 
     // Se não estiver autenticado, ir para welcome
     if (!isSignedIn) {
+      logger.info('User not signed in, redirecting to welcome');
       hasRedirectedRef.current = true;
       router.replace('/(auth)/welcome');
       setTimeout(() => {
@@ -38,9 +45,25 @@ export default function IndexScreen() {
       return;
     }
 
-    // NOVO: Aguardar sync completar antes de verificar user
-    if (syncLoading) {
-      logger.debug('Waiting for user sync to complete...');
+    // ✅ CRITICAL FIX: Wait for user sync to complete before routing
+    // This prevents race condition where routing decision happens before user is created in Supabase
+    if (syncStatus === 'syncing') {
+      logger.debug('User sync in progress, waiting...', { syncStatus });
+      return;
+    }
+
+    // Handle sync errors - if sync failed, assume new user needs onboarding
+    // This prevents infinite loading state if Supabase sync encounters errors
+    if (syncStatus === 'error') {
+      logger.warn('User sync failed, redirecting to onboarding as fallback', {
+        syncStatus,
+        waitTime
+      });
+      hasRedirectedRef.current = true;
+      router.replace('/(auth)/onboarding-flow');
+      setTimeout(() => {
+        hasRedirectedRef.current = false;
+      }, 500);
       return;
     }
 
@@ -53,11 +76,13 @@ export default function IndexScreen() {
     }
 
     // Se passou do tempo máximo de espera e ainda não tem user, assumir que precisa de onboarding
+    // Isso pode acontecer se houve erro ao buscar o usuário do Supabase
     if (!user && waitTime >= MAX_WAIT_TIME) {
       logger.warn('User data not loaded after timeout, assuming new user needs onboarding', {
         waitTime,
         isSignedIn,
-        userLoading
+        userLoading,
+        note: 'This usually means Supabase query failed or user does not exist yet'
       });
       hasRedirectedRef.current = true;
       router.replace('/(auth)/onboarding-flow');
@@ -68,14 +93,30 @@ export default function IndexScreen() {
     }
 
     // Se ainda está carregando, aguardar
-    if (userLoading) return;
+    if (userLoading) {
+      logger.debug('User still loading...', { waitTime });
+      return;
+    }
 
     // Se user ainda é null após carregar, aguardar um pouco mais
     // (o useUserSync pode estar criando o usuário)
     if (!user) {
-      logger.debug('User still loading, waiting...');
+      logger.debug('User data not ready yet, waiting...', { waitTime });
       return;
     }
+
+    // IMPORTANTE: Verificação defensiva de onboarding_completed
+    // Se o campo não existe ou é undefined, tratar como false (precisa de onboarding)
+    const needsOnboarding = user.onboarding_completed !== true;
+
+    logger.info('User data loaded, deciding route', {
+      userId: user.id,
+      clerkId: user.clerk_id,
+      email: user.email,
+      onboarding_completed: user.onboarding_completed,
+      needsOnboarding,
+      hasOnboardingField: 'onboarding_completed' in user,
+    });
 
     // Marcar como redirecionado antes de redirecionar
     hasRedirectedRef.current = true;
@@ -83,17 +124,23 @@ export default function IndexScreen() {
     // Pequeno delay para garantir que o estado está estável
     const timer = setTimeout(() => {
       if (isSignedIn && user) {
-        // Se o onboarding não foi completado, ir para onboarding
-        if (!user.onboarding_completed) {
-          logger.info('Redirecting to onboarding flow');
+        // Se o onboarding não foi completado (ou campo não existe), ir para onboarding
+        if (needsOnboarding) {
+          logger.info('🚀 Redirecting to onboarding flow', {
+            reason: user.onboarding_completed === false ? 'flag is false' : 'flag is missing/undefined',
+            onboarding_completed: user.onboarding_completed,
+          });
           trackEvent('auth_guard_evaluation', {
             user_id: user.id,
             route: 'onboarding',
             onboarding_completed: false,
+            onboarding_field_exists: 'onboarding_completed' in user,
           });
           router.replace('/(auth)/onboarding-flow');
         } else {
-          logger.info('Redirecting to dashboard');
+          logger.info('✅ Redirecting to dashboard', {
+            onboarding_completed: user.onboarding_completed,
+          });
           trackEvent('auth_guard_evaluation', {
             user_id: user.id,
             route: 'dashboard',
@@ -106,6 +153,7 @@ export default function IndexScreen() {
           hasRedirectedRef.current = false;
         }, 500);
       } else if (!isSignedIn) {
+        logger.info('User signed out, redirecting to welcome');
         trackEvent('auth_guard_evaluation', {
           route: 'welcome',
           signed_in: false,
@@ -120,7 +168,7 @@ export default function IndexScreen() {
     return () => {
       clearTimeout(timer);
     };
-  }, [isSignedIn, isLoaded, syncLoading, userLoading, user, waitTime]);
+  }, [isSignedIn, isLoaded, userLoading, user, waitTime, syncStatus]);
 
   const styles = getStyles(colors);
 

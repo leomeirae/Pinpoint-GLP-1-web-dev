@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Linking, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useShotsyColors';
@@ -11,7 +10,7 @@ import { useUser } from '@/hooks/useUser';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/lib/logger';
-import { supabase } from '@/lib/supabase';
+import { performSignOut, performAccountDeletion } from '@/lib/auth';
 import { trackEvent } from '@/lib/analytics';
 
 const logger = createLogger('Settings');
@@ -50,41 +49,12 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            logger.info('Starting sign out process');
-            trackEvent('sign_out_started');
-
-            // 1. Clear AsyncStorage FIRST (before sign out)
-            logger.info('Clearing local storage');
-            await AsyncStorage.multiRemove([
-              '@mounjaro:onboarding_progress',
-              '@mounjaro_tracker:theme_mode',
-              '@mounjaro_tracker:selected_theme',
-              '@mounjaro_tracker:accent_color',
-              '@mounjaro:feature_flags'
-            ]);
-
-            // 2. Call Clerk's signOut
-            await signOut();
-            logger.info('Sign out successful from Clerk');
-            trackEvent('sign_out_complete');
-
-            // 3. Wait a moment to ensure session is cleared
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            // 4. Use replace to prevent back navigation
-            logger.info('Redirecting to welcome screen');
-            router.replace('/(auth)/welcome');
-
-            // Fallback: if replace doesn't work, try push after a delay
-            setTimeout(() => {
-              logger.debug('Checking if redirect was successful');
-            }, 1000);
+            await performSignOut(signOut, router);
           } catch (error) {
-            logger.error('Error during logout', error as Error);
-            logger.debug('Attempting fallback redirect');
-
+            logger.error('Error during sign out', error as Error);
             // Try fallback navigation
             try {
+              logger.debug('Attempting fallback redirect with push');
               router.push('/(auth)/welcome');
             } catch (fallbackError) {
               logger.error('Fallback redirect also failed', fallbackError as Error);
@@ -131,7 +101,7 @@ export default function SettingsScreen() {
                 {
                   text: 'Sim, Excluir',
                   style: 'destructive',
-                  onPress: () => performAccountDeletion(),
+                  onPress: () => handleAccountDeletionConfirmed(),
                 },
               ]
             );
@@ -141,41 +111,15 @@ export default function SettingsScreen() {
     );
   };
 
-  const performAccountDeletion = async () => {
+  const handleAccountDeletionConfirmed = async () => {
+    if (!user?.id) {
+      Alert.alert('Erro', 'Usuário não encontrado');
+      return;
+    }
+
     try {
       setDeletingAccount(true);
-      logger.info('Starting account deletion process', { userId: user?.id });
-      trackEvent('account_deletion_started', {
-        user_id: user?.id,
-      });
-
-      // Step 1: Delete user record from Supabase (CASCADE will delete all related data)
-      if (user?.id) {
-        const { error: dbError } = await supabase
-          .from('users')
-          .delete()
-          .eq('id', user.id);
-
-        if (dbError) {
-          logger.error('Error deleting from Supabase', dbError);
-          throw new Error(`Erro ao deletar dados: ${dbError.message}`);
-        }
-        logger.info('User data deleted from Supabase');
-      }
-
-      // Step 2: Sign out from Clerk (this also clears session)
-      await signOut();
-      logger.info('User signed out from Clerk');
-
-      // Step 3: Wait a moment for cleanup
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Step 4: Redirect to welcome screen
-      logger.info('Redirecting to welcome screen');
-      trackEvent('account_deletion_complete', {
-        user_id: user?.id,
-      });
-      router.replace('/(auth)/welcome');
+      await performAccountDeletion(user.id, signOut, router);
 
       Alert.alert('Sucesso', 'Sua conta foi excluída com sucesso.', [
         {
@@ -186,11 +130,6 @@ export default function SettingsScreen() {
         },
       ]);
     } catch (error) {
-      logger.error('Error during account deletion', error as Error);
-      trackEvent('account_deletion_failed', {
-        user_id: user?.id,
-        error: error instanceof Error ? error.message : 'unknown error',
-      });
       setDeletingAccount(false);
 
       const errorMessage =

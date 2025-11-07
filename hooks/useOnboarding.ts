@@ -137,6 +137,12 @@ export function useOnboarding() {
       }
 
       // Atualizar users
+      logger.info('Saving onboarding data to users table', {
+        userIdSupabase,
+        updates: userUpdates,
+        setting_onboarding_completed: true,
+      });
+
       const { error: userError } = await supabase
         .from('users')
         .update(userUpdates)
@@ -146,6 +152,11 @@ export function useOnboarding() {
         logger.error('Error updating user', userError);
         throw userError;
       }
+
+      logger.info('✅ Onboarding completed successfully', {
+        userIdSupabase,
+        onboarding_completed: true,
+      });
 
       // 2. Criar registro em medications se houver dados de medicação
       if (data.medication && data.initial_dose && data.frequency) {

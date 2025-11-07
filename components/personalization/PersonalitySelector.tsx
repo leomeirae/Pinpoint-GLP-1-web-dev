@@ -130,7 +130,7 @@ export const PersonalitySelector: React.FC<PersonalitySelectorProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Communication Style</Text>
-        <Text style={styles.subtitle}>Customize how Shotsy talks to you</Text>
+        <Text style={styles.subtitle}>Customize how Pinpoint talks to you</Text>
       </View>
 
       {/* Preview Box */}

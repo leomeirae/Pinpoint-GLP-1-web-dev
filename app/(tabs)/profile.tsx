@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'expo-router';
 import { useColors } from '@/constants/colors';
 import { useTheme } from '@/lib/theme-context';
-import { supabase } from '@/lib/supabase';
+import { performSignOut } from '@/lib/auth';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('Profile');
@@ -26,21 +26,10 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            logger.info('Signing out');
-
-            // Clear Supabase session
-            await supabase.auth.signOut();
-            logger.debug('Supabase session cleared');
-
-            // Sign out from Clerk
-            await signOut();
-            logger.debug('Clerk sign out successful');
-
-            // Redirect to welcome (carrossel)
-            router.replace('/(auth)/welcome');
-            logger.debug('Redirected to login');
+            await performSignOut(signOut, router);
           } catch (error) {
             logger.error('Error signing out', error as Error);
+            Alert.alert('Erro', 'Não foi possível sair da conta. Por favor, tente novamente.');
           }
         },
       },

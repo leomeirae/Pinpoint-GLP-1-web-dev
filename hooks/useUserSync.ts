@@ -11,10 +11,25 @@ const syncState = {
   syncedUserIds: new Set<string>(),
 };
 
+// Export function to clear sync state (useful for logout)
+export function clearSyncState() {
+  syncState.syncedUserIds.clear();
+  syncState.inProgress = false;
+  logger.info('Sync state cleared');
+}
+
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
+// Maximum number of retries before giving up
+const MAX_SYNC_RETRIES = 5;
+// Maximum time to wait for Clerk user data (in milliseconds)
+const MAX_CLERK_WAIT_TIME = 2500; // 5 retries * 500ms
+
 export function useUserSync() {
   const { isSignedIn, userId } = useAuth();
   const { user } = useUser();
   const [isLoading, setIsLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
@@ -23,12 +38,14 @@ export function useUserSync() {
   useEffect(() => {
     if (!isSignedIn || !userId) {
       setIsLoading(false);
+      setSyncStatus('idle');
       return;
     }
 
     // Se já sincronizou este usuário nesta sessão, não fazer nada
     if (hasSyncedRef.current || syncState.syncedUserIds.has(userId)) {
       setIsLoading(false);
+      setSyncStatus('synced');
       return;
     }
 
@@ -57,10 +74,12 @@ export function useUserSync() {
       if (syncState.inProgress) {
         logger.debug('Sync already in progress, skipping');
         setIsLoading(false);
+        setSyncStatus('syncing');
         return;
       }
 
       syncState.inProgress = true;
+      setSyncStatus('syncing');
 
       try {
         setIsLoading(true);
@@ -73,9 +92,11 @@ export function useUserSync() {
         });
 
         // Se user ainda não estiver disponível, tentar novamente depois
-        if (!user && retryCountRef.current < 5) {
+        if (!user && retryCountRef.current < MAX_SYNC_RETRIES) {
           logger.debug('Clerk user not ready yet, waiting', {
             retryCount: retryCountRef.current,
+            maxRetries: MAX_SYNC_RETRIES,
+            nextRetryIn: '500ms',
           });
           retryCountRef.current++;
           syncState.inProgress = false; // Liberar para retry
@@ -89,7 +110,11 @@ export function useUserSync() {
 
         // Se ainda não tem user após todas as tentativas, criar com dados mínimos
         if (!user) {
-          logger.warn('Clerk user still not available after retries, creating with minimal data');
+          logger.warn('Clerk user still not available after max retries, creating with minimal data', {
+            retryCount: retryCountRef.current,
+            maxRetries: MAX_SYNC_RETRIES,
+            totalWaitTime: `${MAX_CLERK_WAIT_TIME}ms`,
+          });
         }
 
         // Check if user exists in Supabase
@@ -115,6 +140,7 @@ export function useUserSync() {
               user?.emailAddresses?.[0]?.emailAddress ||
               `${userId}@clerk.local`,
             name: user?.fullName || user?.firstName || null,
+            onboarding_completed: false, // Explicitly set to ensure new users go to onboarding
           };
 
           logger.debug('User data to insert', { email: userData.email, name: userData.name });
@@ -173,10 +199,12 @@ export function useUserSync() {
         // Marcar como sincronizado
         syncState.syncedUserIds.add(userId);
         hasSyncedRef.current = true;
+        setSyncStatus('synced');
       } catch (err) {
         logger.error('Error syncing user', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to sync user';
         setError(errorMessage);
+        setSyncStatus('error');
       } finally {
         syncState.inProgress = false;
         setIsLoading(false);
@@ -194,5 +222,5 @@ export function useUserSync() {
     };
   }, [isSignedIn, userId, user]);
 
-  return { isLoading, error };
+  return { isLoading, syncStatus, error };
 }
