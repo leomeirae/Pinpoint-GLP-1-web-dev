@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useAuth, useUser as useClerkUser } from '@/lib/clerk';
-import { useUser } from '@/hooks/useUser';
+import { useUser, clearUserCache } from '@/hooks/useUser';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'expo-router';
 import { useColors } from '@/constants/colors';
@@ -26,21 +26,35 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            logger.info('Signing out');
+            logger.info('Starting sign out process');
 
-            // Clear Supabase session
-            await supabase.auth.signOut();
-            logger.debug('Supabase session cleared');
+            // 1. Clear user cache first
+            clearUserCache();
+            logger.info('User cache cleared');
 
-            // Sign out from Clerk
+            // 2. Clear Supabase session
+            try {
+              await supabase.auth.signOut();
+              logger.info('Supabase session cleared');
+            } catch (supabaseError) {
+              // Not critical if fails (we use Clerk auth)
+              logger.debug('Supabase signOut skipped (not using Supabase auth)');
+            }
+
+            // 3. Sign out from Clerk
             await signOut();
-            logger.debug('Clerk sign out successful');
+            logger.info('Clerk sign out successful');
 
-            // Redirect to welcome (carrossel)
+            // 4. Wait to ensure all sessions are cleared
+            await new Promise((resolve) => setTimeout(resolve, 800));
+
+            // 5. Redirect to welcome (carrossel)
+            logger.info('Redirecting to welcome screen (carousel)');
             router.replace('/(auth)/welcome');
-            logger.debug('Redirected to login');
+            logger.debug('Logout redirect completed');
           } catch (error) {
             logger.error('Error signing out', error as Error);
+            Alert.alert('Erro', 'Não foi possível sair da conta. Por favor, tente novamente.');
           }
         },
       },

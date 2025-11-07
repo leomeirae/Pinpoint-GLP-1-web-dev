@@ -6,7 +6,7 @@ import { useColors } from '@/hooks/useShotsyColors';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfile } from '@/hooks/useProfile';
 import { useSettings } from '@/hooks/useSettings';
-import { useUser } from '@/hooks/useUser';
+import { useUser, clearUserCache } from '@/hooks/useUser';
 import { PremiumGate } from '@/components/premium/PremiumGate';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/lib/logger';
@@ -52,28 +52,44 @@ export default function SettingsScreen() {
             logger.info('Starting sign out process');
             trackEvent('sign_out_started');
 
-            // Call Clerk's signOut
+            // 1. Clear user cache first
+            clearUserCache();
+            logger.info('User cache cleared');
+
+            // 2. Clear Supabase session (if exists)
+            try {
+              await supabase.auth.signOut();
+              logger.info('Supabase session cleared');
+            } catch (supabaseError) {
+              // Not critical if fails (we use Clerk auth)
+              logger.debug('Supabase signOut skipped (not using Supabase auth)');
+            }
+
+            // 3. Call Clerk's signOut
             await signOut();
             logger.info('Sign out successful from Clerk');
             trackEvent('sign_out_complete');
 
-            // Wait a moment to ensure session is cleared
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            // 4. Wait a moment to ensure all sessions are cleared
+            await new Promise((resolve) => setTimeout(resolve, 800));
 
-            // Use replace to prevent back navigation
-            logger.info('Redirecting to welcome screen');
+            // 5. Use replace to prevent back navigation to authenticated screens
+            logger.info('Redirecting to welcome screen (carousel)');
             router.replace('/(auth)/welcome');
 
-            // Fallback: if replace doesn't work, try push after a delay
+            // Verify redirect after a delay
             setTimeout(() => {
-              logger.debug('Checking if redirect was successful');
+              logger.debug('Logout redirect completed');
             }, 1000);
           } catch (error) {
             logger.error('Error during logout', error as Error);
-            logger.debug('Attempting fallback redirect');
+            trackEvent('sign_out_error', {
+              error_message: error instanceof Error ? error.message : 'Unknown error',
+            });
 
             // Try fallback navigation
             try {
+              logger.debug('Attempting fallback redirect with push');
               router.push('/(auth)/welcome');
             } catch (fallbackError) {
               logger.error('Fallback redirect also failed', fallbackError as Error);
@@ -139,6 +155,10 @@ export default function SettingsScreen() {
       });
 
       // Step 1: Delete user record from Supabase (CASCADE will delete all related data)
+      // This will automatically delete from related tables:
+      // - weight_logs, medication_applications, side_effects
+      // - daily_nutrition, daily_streaks, achievements
+      // - scheduled_notifications, subscriptions, settings, medications
       if (user?.id) {
         const { error: dbError } = await supabase
           .from('users')
@@ -149,17 +169,21 @@ export default function SettingsScreen() {
           logger.error('Error deleting from Supabase', dbError);
           throw new Error(`Erro ao deletar dados: ${dbError.message}`);
         }
-        logger.info('User data deleted from Supabase');
+        logger.info('User data deleted from Supabase (all related data deleted via CASCADE)');
       }
 
-      // Step 2: Sign out from Clerk (this also clears session)
+      // Step 2: Clear user cache
+      clearUserCache();
+      logger.info('User cache cleared');
+
+      // Step 3: Sign out from Clerk (this also clears session)
       await signOut();
       logger.info('User signed out from Clerk');
 
-      // Step 3: Wait a moment for cleanup
+      // Step 4: Wait a moment for cleanup
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Step 4: Redirect to welcome screen
+      // Step 5: Redirect to welcome screen
       logger.info('Redirecting to welcome screen');
       trackEvent('account_deletion_complete', {
         user_id: user?.id,

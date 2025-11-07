@@ -115,6 +115,7 @@ export function useUserSync() {
               user?.emailAddresses?.[0]?.emailAddress ||
               `${userId}@clerk.local`,
             name: user?.fullName || user?.firstName || null,
+            onboarding_completed: false, // Explicitly set to ensure new users go to onboarding
           };
 
           logger.debug('User data to insert', { email: userData.email, name: userData.name });
