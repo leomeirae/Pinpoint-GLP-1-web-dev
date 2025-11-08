@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Syringe, Scales, TrendUp, Flame, ForkKnife, Drop, Note, CalendarBlank } from 'phosphor-react-native';
 import { useColors } from '@/hooks/useShotsyColors';
 import { MonthCalendar } from '@/components/calendar/MonthCalendar';
 import { useApplications } from '@/hooks/useApplications';
@@ -17,6 +17,8 @@ import { useWeights } from '@/hooks/useWeights';
 import { useNutrition } from '@/hooks/useNutrition';
 import { useSideEffects } from '@/hooks/useSideEffects';
 import { getCurrentEstimatedLevel, MedicationApplication } from '@/lib/pharmacokinetics';
+import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
+import { getDosageColor } from '@/lib/dosageColors';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('Calendar');
@@ -74,11 +76,11 @@ export default function CalendarViewScreen() {
     }));
 
     const weightEvents: CalendarEvent[] = weights.map((weight) => ({
-        id: weight.id,
-        type: 'weight' as const,
-        date: weight.date,
-        time: weight.date,
-        weight: weight.weight,
+      id: weight.id,
+      type: 'weight' as const,
+      date: weight.date,
+      time: weight.date,
+      weight: weight.weight,
     }));
 
     return [...shotEvents, ...weightEvents].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -177,14 +179,14 @@ export default function CalendarViewScreen() {
   };
 
   const formatMonthYear = (date: Date): string => {
-    return new Intl.DateTimeFormat('pt-BR', {
+    return new Intl.DateTimeFormat('en-US', {
       month: 'long',
       year: 'numeric',
     }).format(date);
   };
 
   const formatDayDate = (date: Date): string => {
-    return new Intl.DateTimeFormat('pt-BR', {
+    return new Intl.DateTimeFormat('en-US', {
       day: 'numeric',
       month: 'long',
     }).format(date);
@@ -208,13 +210,19 @@ export default function CalendarViewScreen() {
 
   const isLoading = loadingApplications || loadingWeights || loadingNutrition || loadingSideEffects;
 
+  // Get dosage color for injection indicator
+  const injectionColor = selectedDateData.injection
+    ? getDosageColor(selectedDateData.injection.dosage)
+    : colors.textMuted;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
-      {/* Header - V0 Design */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Calendário</Text>
-        <TouchableOpacity onPress={handleGoToToday}>
-          <Text style={[styles.headerButton, { color: colors.primary }]}>Hoje</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header - Shotsy Style */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Calendar</Text>
+        <TouchableOpacity onPress={handleGoToToday} style={styles.todayButton}>
+          <CalendarBlank size={18} color={colors.primary} weight="bold" />
+          <Text style={[styles.todayButtonText, { color: colors.primary }]}>Today</Text>
         </TouchableOpacity>
       </View>
 
@@ -223,9 +231,9 @@ export default function CalendarViewScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Current Day View - V0 Design */}
-        <View style={[styles.currentDayView, { backgroundColor: colors.card }]}>
-          {/* Horizontal Day Buttons */}
+        {/* Current Day View - Shotsy Style */}
+        <View style={styles.currentDayView}>
+          {/* Horizontal Day Buttons with Visual Enhancement */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -234,16 +242,31 @@ export default function CalendarViewScreen() {
             {weekDays.map((day, index) => {
               const dayIsSelected = isSelected(day);
               const dayIsToday = isToday(day);
+
+              // Check if day has injection
+              const dayHasInjection = applications.some(app => {
+                const appDate = app.date || new Date(app.application_date);
+                appDate.setHours(0, 0, 0, 0);
+                const checkDay = new Date(day);
+                checkDay.setHours(0, 0, 0, 0);
+                return appDate.getTime() === checkDay.getTime();
+              });
+
               return (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.dayButton,
                     {
-                      backgroundColor: dayIsSelected ? colors.primary : colors.backgroundSecondary,
+                      backgroundColor: dayIsSelected
+                        ? colors.primary
+                        : colors.card,
                     },
+                    dayIsSelected && ShotsyDesignTokens.shadows.card,
                   ]}
                   onPress={() => setSelectedDate(day)}
+                  accessibilityLabel={`Select ${formatDayDate(day)}`}
+                  accessibilityRole="button"
                 >
                   <Text
                     style={[
@@ -256,77 +279,98 @@ export default function CalendarViewScreen() {
                     {day.getDate()}
                   </Text>
                   {dayIsToday && (
-                    <View style={[styles.todayIndicator, { backgroundColor: '#FCD34D' }]} />
+                    <View style={[styles.todayDot, { backgroundColor: colors.warning }]} />
+                  )}
+                  {dayHasInjection && !dayIsToday && (
+                    <View style={[styles.injectionDot, { backgroundColor: colors.success }]} />
                   )}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
 
-          {/* Date Title */}
+          {/* Date Title with Visual Hierarchy */}
           <Text style={[styles.dateTitle, { color: colors.text }]}>
-            {isToday(selectedDate) ? 'Hoje' : ''}, {formatDayDate(selectedDate)}
+            {isToday(selectedDate) ? 'Today' : ''}{isToday(selectedDate) && ', '}{formatDayDate(selectedDate)}
           </Text>
 
-          {/* Daily Stats Cards - V0 Design */}
+          {/* Daily Stats Cards - Shotsy Style with Dosage Colors */}
           <View style={styles.statsGrid}>
-            {/* Injeção Card */}
+            {/* Injection Card with Dosage Color Indicator */}
             <TouchableOpacity
-              style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.statCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
               onPress={() => router.push('/(tabs)/add-application')}
+              accessibilityLabel={selectedDateData.injection ? `Injection recorded: ${selectedDateData.injection.dosage}mg` : 'Add injection'}
             >
+              {selectedDateData.injection && (
+                <View
+                  style={[
+                    styles.dosageIndicator,
+                    { backgroundColor: injectionColor }
+                  ]}
+                />
+              )}
               <View style={styles.statHeader}>
-                <Text style={styles.statIcon}>💉</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Injeção</Text>
+                <Syringe size={20} color={injectionColor} weight="bold" />
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Injection</Text>
               </View>
               {selectedDateData.injection ? (
                 <View style={styles.statContent}>
-                  <Text style={[styles.statValue, { color: colors.text }]}>
-                    {selectedDateData.injection.dosage}mg
+                  <Text style={[styles.statValue, { color: injectionColor }]}>
+                    {selectedDateData.injection.dosage}
+                    <Text style={[styles.statUnit, { color: colors.textSecondary }]}>mg</Text>
                   </Text>
                 </View>
               ) : (
-                <>
-                  <View style={[styles.dashedLine, { borderColor: colors.border }]} />
-                  <Text style={[styles.statPlaceholder, { color: colors.textSecondary }]}>
-                    Toque para adicionar injeção
-                  </Text>
-                </>
+                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>
+                  Tap to add
+                </Text>
               )}
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-            {/* Nível Est. Card */}
+            {/* Estimated Level Card */}
             <View
-              style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.statCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
             >
               <View style={styles.statHeader}>
-                <Ionicons name="trending-up" size={16} color={colors.primary} />
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Nível Est.</Text>
+                <TrendUp size={20} color={colors.primary} weight="bold" />
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Est. Level</Text>
               </View>
               {selectedDateData.estimatedLevel > 0 ? (
                 <View style={styles.statContent}>
-                  <Text style={[styles.statValue, { color: colors.text }]}>
-                    {selectedDateData.estimatedLevel.toFixed(2)}mg
-            </Text>
-          </View>
-              ) : (
-                <>
-                  <View style={[styles.dashedLine, { borderColor: colors.border }]} />
-                  <Text style={[styles.statPlaceholder, { color: colors.textSecondary }]}>
-                    Nenhum dado
+                  <Text style={[styles.statValue, { color: colors.primary }]}>
+                    {selectedDateData.estimatedLevel.toFixed(1)}
+                    <Text style={[styles.statUnit, { color: colors.textSecondary }]}>mg</Text>
                   </Text>
-                </>
+                </View>
+              ) : (
+                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>
+                  No data
+                </Text>
               )}
-        </View>
+            </View>
 
-            {/* Peso Card */}
+            {/* Weight Card */}
             <TouchableOpacity
-              style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.statCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
               onPress={() => router.push('/(tabs)/add-application')}
+              accessibilityLabel={selectedDateData.weight ? `Weight: ${selectedDateData.weight.weight}kg` : 'Add weight'}
             >
               <View style={styles.statHeader}>
-                <Text style={styles.statIcon}>⚖️</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Peso</Text>
+                <Scales size={20} color={colors.success} weight="bold" />
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Weight</Text>
               </View>
               {selectedDateData.weight ? (
                 <View style={styles.statContent}>
@@ -336,22 +380,23 @@ export default function CalendarViewScreen() {
                   </Text>
                 </View>
               ) : (
-                <>
-                  <View style={[styles.dashedLine, { borderColor: colors.border }]} />
-                  <Text style={[styles.statPlaceholder, { color: colors.textSecondary }]}>
-                    Toque para adicionar peso
-                  </Text>
-                </>
+                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>
+                  Tap to add
+                </Text>
               )}
             </TouchableOpacity>
 
-            {/* Calorias Card */}
+            {/* Calories Card */}
             <View
-              style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.statCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
             >
               <View style={styles.statHeader}>
-                <Ionicons name="flame" size={16} color="#F97316" />
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Calorias</Text>
+                <Flame size={20} color="#F97316" weight="bold" />
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Calories</Text>
               </View>
               {selectedDateData.nutrition?.calories ? (
                 <View style={styles.statContent}>
@@ -360,86 +405,100 @@ export default function CalendarViewScreen() {
                   </Text>
                 </View>
               ) : (
-                <View style={[styles.dashedLine, { borderColor: colors.border }]} />
+                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>—</Text>
               )}
             </View>
 
-            {/* Proteína Card */}
+            {/* Protein Card */}
             <View
-              style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.statCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
             >
               <View style={styles.statHeader}>
-                <Ionicons name="restaurant" size={16} color="#EF4444" />
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Proteína</Text>
+                <ForkKnife size={20} color="#EF4444" weight="bold" />
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Protein</Text>
               </View>
               {selectedDateData.nutrition?.protein ? (
                 <View style={styles.statContent}>
                   <Text style={[styles.statValue, { color: colors.text }]}>
-                    {selectedDateData.nutrition.protein}g
+                    {selectedDateData.nutrition.protein}
+                    <Text style={[styles.statUnit, { color: colors.textSecondary }]}>g</Text>
                   </Text>
                 </View>
               ) : (
-                <View style={[styles.dashedLine, { borderColor: colors.border }]} />
+                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>—</Text>
               )}
             </View>
           </View>
 
-          {/* Side Effects Card - V0 Design */}
+          {/* Side Effects Card - Shotsy Style */}
           <TouchableOpacity
-            style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.card },
+              ShotsyDesignTokens.shadows.card,
+            ]}
             onPress={() => router.push('/(tabs)/add-side-effect')}
+            accessibilityLabel={`Side effects: ${selectedDateData.sideEffects.length} recorded`}
           >
             <View style={styles.sectionHeader}>
-              <Ionicons name="water" size={16} color="#10B981" />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Efeitos colaterais</Text>
+              <Drop size={20} color="#10B981" weight="bold" />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Side Effects</Text>
             </View>
             {selectedDateData.sideEffects.length > 0 ? (
               <Text style={[styles.sectionContent, { color: colors.text }]}>
-                {selectedDateData.sideEffects.length} efeito(s) registrado(s)
+                {selectedDateData.sideEffects.length} effect(s) recorded
               </Text>
             ) : (
-              <Text style={[styles.sectionPlaceholder, { color: colors.textSecondary }]}>
-                Toque para adicionar efeitos colaterais
+              <Text style={[styles.sectionPlaceholder, { color: colors.textMuted }]}>
+                Tap to add side effects
               </Text>
             )}
           </TouchableOpacity>
 
-          {/* Daily Notes Card - V0 Design */}
+          {/* Daily Notes Card - Shotsy Style */}
           <TouchableOpacity
-            style={[styles.sectionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[
+              styles.sectionCard,
+              { backgroundColor: colors.card },
+              ShotsyDesignTokens.shadows.card,
+            ]}
             onPress={() => router.push('/(tabs)/add-application')}
           >
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionIcon}>📝</Text>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Notas do dia</Text>
+              <Note size={20} color={colors.primary} weight="bold" />
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Notes</Text>
             </View>
             {selectedDateData.nutrition?.notes ? (
               <Text style={[styles.sectionContent, { color: colors.text }]} numberOfLines={2}>
                 {selectedDateData.nutrition.notes}
               </Text>
             ) : (
-              <Text style={[styles.sectionPlaceholder, { color: colors.textSecondary }]}>
-                Toque para adicionar notas
+              <Text style={[styles.sectionPlaceholder, { color: colors.textMuted }]}>
+                Tap to add notes
               </Text>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Calendar Month View - V0 Design */}
-        <View style={[styles.monthView, { backgroundColor: colors.card }]}>
+        {/* Calendar Month View - Shotsy Style */}
+        <View style={[styles.monthView, { backgroundColor: colors.card }, ShotsyDesignTokens.shadows.card]}>
           <Text style={[styles.monthTitle, { color: colors.text }]}>
             {formatMonthYear(currentDate)}
           </Text>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-              Carregando eventos...
-            </Text>
-          </View>
-        ) : (
+          {/* Loading State */}
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                Loading events...
+              </Text>
+            </View>
+          ) : (
             <MonthCalendar
               currentDate={currentDate}
               selectedDate={selectedDate}
@@ -447,7 +506,7 @@ export default function CalendarViewScreen() {
               events={events}
             />
           )}
-              </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -461,138 +520,144 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: ShotsyDesignTokens.spacing.lg,
+    paddingTop: 60,
+    paddingBottom: ShotsyDesignTokens.spacing.md,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...ShotsyDesignTokens.typography.h2,
   },
-  headerButton: {
-    fontSize: 16,
+  todayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ShotsyDesignTokens.spacing.xs,
+    paddingHorizontal: ShotsyDesignTokens.spacing.sm,
+    paddingVertical: 4,
+  },
+  todayButtonText: {
+    ...ShotsyDesignTokens.typography.label,
     fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: ShotsyDesignTokens.spacing.xxl,
   },
   currentDayView: {
-    padding: 16,
-    marginBottom: 16,
-    width: '100%',
+    padding: ShotsyDesignTokens.spacing.lg,
+    marginBottom: ShotsyDesignTokens.spacing.lg,
   },
   daysScroll: {
-    paddingVertical: 8,
-    gap: 8,
+    paddingVertical: ShotsyDesignTokens.spacing.sm,
+    gap: ShotsyDesignTokens.spacing.sm,
   },
   dayButton: {
     width: 56,
     height: 64,
-    borderRadius: 16,
+    borderRadius: ShotsyDesignTokens.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: ShotsyDesignTokens.spacing.sm,
   },
   dayButtonNumber: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...ShotsyDesignTokens.typography.h4,
   },
-  todayIndicator: {
+  todayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 4,
+  },
+  injectionDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginTop: 4,
   },
   dateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 16,
-    marginBottom: 16,
+    ...ShotsyDesignTokens.typography.h3,
+    marginTop: ShotsyDesignTokens.spacing.lg,
+    marginBottom: ShotsyDesignTokens.spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
+    gap: ShotsyDesignTokens.spacing.md,
+    marginBottom: ShotsyDesignTokens.spacing.md,
   },
   statCard: {
     width: '47%',
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: 16,
+    borderRadius: ShotsyDesignTokens.borderRadius.lg,
+    padding: ShotsyDesignTokens.spacing.lg,
     minHeight: 100,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  dosageIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    borderTopLeftRadius: ShotsyDesignTokens.borderRadius.lg,
+    borderTopRightRadius: ShotsyDesignTokens.borderRadius.lg,
   },
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  statIcon: {
-    fontSize: 16,
+    gap: ShotsyDesignTokens.spacing.xs,
+    marginBottom: ShotsyDesignTokens.spacing.sm,
   },
   statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...ShotsyDesignTokens.typography.caption,
   },
   statContent: {
     flex: 1,
     justifyContent: 'center',
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...ShotsyDesignTokens.typography.h2,
   },
   statUnit: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  dashedLine: {
-    height: 32,
-    borderBottomWidth: 2,
-    borderStyle: 'dashed',
-    marginBottom: 8,
+    ...ShotsyDesignTokens.typography.body,
   },
   statPlaceholder: {
-    fontSize: 12,
+    ...ShotsyDesignTokens.typography.caption,
+    fontStyle: 'italic',
   },
   sectionCard: {
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: ShotsyDesignTokens.borderRadius.lg,
+    padding: ShotsyDesignTokens.spacing.lg,
+    marginBottom: ShotsyDesignTokens.spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  sectionIcon: {
-    fontSize: 16,
+    gap: ShotsyDesignTokens.spacing.sm,
+    marginBottom: ShotsyDesignTokens.spacing.sm,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...ShotsyDesignTokens.typography.label,
     fontWeight: '600',
   },
   sectionContent: {
-    fontSize: 14,
+    ...ShotsyDesignTokens.typography.body,
   },
   sectionPlaceholder: {
-    fontSize: 14,
+    ...ShotsyDesignTokens.typography.body,
+    fontStyle: 'italic',
   },
   monthView: {
-    padding: 16,
-    paddingBottom: 24,
-    width: '100%',
+    marginHorizontal: ShotsyDesignTokens.spacing.lg,
+    borderRadius: ShotsyDesignTokens.borderRadius.lg,
+    padding: ShotsyDesignTokens.spacing.lg,
+    marginBottom: ShotsyDesignTokens.spacing.lg,
   },
   monthTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 16,
+    ...ShotsyDesignTokens.typography.h2,
+    marginBottom: ShotsyDesignTokens.spacing.lg,
   },
   loadingContainer: {
     flex: 1,
@@ -602,8 +667,7 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    fontWeight: '600',
+    ...ShotsyDesignTokens.typography.body,
+    marginTop: ShotsyDesignTokens.spacing.lg,
   },
 });
