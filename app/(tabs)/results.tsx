@@ -4,18 +4,31 @@ import { useColors } from '@/hooks/useShotsyColors';
 import { useWeights } from '@/hooks/useWeights';
 import { useProfile } from '@/hooks/useProfile';
 import { useApplications } from '@/hooks/useApplications';
-import { WeightChart } from '@/components/results/WeightChart';
-import { Ionicons } from '@expo/vector-icons';
+import { WeightChartV2 } from '@/components/results/WeightChartV2';
+import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
+import { Scales, TrendDown, TrendUp, Target } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('Results');
 
-type TimeFilter = '1 month' | '3 months' | '6 months' | 'All time';
+type TimeFilter = '1month' | '3months' | '6months' | 'all';
+
+interface TimeFilterOption {
+  key: TimeFilter;
+  label: string;
+}
+
+const TIME_FILTERS: TimeFilterOption[] = [
+  { key: '1month', label: '1 month' },
+  { key: '3months', label: '3 months' },
+  { key: '6months', label: '6 months' },
+  { key: 'all', label: 'All time' },
+];
 
 export default function ResultsScreen() {
   const colors = useColors();
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('All time');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
 
   const { weights, loading: weightsLoading, refetch: refetchWeights } = useWeights();
@@ -36,13 +49,13 @@ export default function ResultsScreen() {
   const filteredWeights = useMemo(() => {
     const now = new Date();
     switch (timeFilter) {
-      case '1 month':
+      case '1month':
         const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         return weights.filter((w) => w.date >= oneMonthAgo);
-      case '3 months':
+      case '3months':
         const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         return weights.filter((w) => w.date >= threeMonthsAgo);
-      case '6 months':
+      case '6months':
         const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
         return weights.filter((w) => w.date >= sixMonthsAgo);
       default:
@@ -108,176 +121,146 @@ export default function ResultsScreen() {
     });
   }, [filteredWeights, applications]);
 
-  // Map period filter for WeightChart
-  const periodFilterMap: Record<TimeFilter, 'week' | 'month' | '90days' | 'all'> = {
-    '1 month': 'month',
-    '3 months': '90days',
-    '6 months': 'all',
-    'All time': 'all',
-  };
-
   const loading = weightsLoading || profileLoading || applicationsLoading;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header - Shotsy Style */}
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Results</Text>
+      </View>
+
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing || loading} onRefresh={handleRefresh} />}
         style={styles.scrollView}
+        contentContainerStyle={styles.content}
       >
-        <View style={styles.content}>
-          {/* Time filters - V0 Design */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContainer}
-          >
-            {(['1 month', '3 months', '6 months', 'All time'] as TimeFilter[]).map((filter) => (
-              <TouchableOpacity
-                key={filter}
-                onPress={() => setTimeFilter(filter)}
-                style={[
-                  styles.filterButton,
-                  {
-                    backgroundColor:
-                      timeFilter === filter ? colors.backgroundSecondary : colors.card,
-                    borderColor: timeFilter === filter ? 'transparent' : colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.filterText,
-                    {
-                      color: timeFilter === filter ? colors.text : colors.textSecondary,
-                      fontWeight: timeFilter === filter ? '600' : '500',
-                    },
-                  ]}
-                >
-                  {filter}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+        {/* Weight Chart V2 - Shotsy Style */}
+        <WeightChartV2
+          data={weightData}
+          targetWeight={targetWeight}
+          initialWeight={startWeight}
+        />
 
-          {/* Weight Change Section - V0 Design */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="scale" size={20} color={colors.primary} />
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Weight Change</Text>
+        {/* Metrics Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Detailed Metrics</Text>
+
+          {/* Metrics Grid */}
+          <View style={styles.metricsGrid}>
+            {/* Total Change */}
+            <View
+              style={[
+                styles.metricCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <TrendDown size={20} color={colors.primary} weight="bold" />
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
+                  Total Change
+                </Text>
               </View>
-              <Text style={[styles.sectionSubtitle, { color: colors.textSecondary }]}>
-                {timeFilter === 'All time' ? 'All time' : timeFilter}
+              <Text style={[styles.metricValue, { color: colors.text }]}>
+                {weightChange >= 0 ? '+' : ''}
+                {weightChange.toFixed(1)}
+                <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> kg</Text>
+              </Text>
+              <Text style={[styles.metricPercent, { color: colors.textMuted }]}>
+                {percentChange >= 0 ? '+' : ''}
+                {percentChange.toFixed(1)}%
               </Text>
             </View>
 
-            {/* Stats Grid - V0 Design */}
-            <View style={styles.statsGrid}>
-              {/* Total change */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={styles.statHeader}>
-                  <Ionicons name="trending-down" size={12} color={colors.primary} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total change</Text>
-                </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {weightChange >= 0 ? '+' : ''}
-                  {weightChange.toFixed(1)}
-                  <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kg</Text>
+            {/* Current BMI */}
+            <View
+              style={[
+                styles.metricCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <Scales size={20} color={colors.primary} weight="bold" />
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
+                  Current BMI
                 </Text>
               </View>
+              <Text style={[styles.metricValue, { color: colors.text }]}>
+                {currentBMI > 0 ? currentBMI.toFixed(1) : '—'}
+              </Text>
+              <Text style={[styles.metricSubtext, { color: colors.textMuted }]}>
+                {currentBMI < 18.5
+                  ? 'Underweight'
+                  : currentBMI < 25
+                    ? 'Normal'
+                    : currentBMI < 30
+                      ? 'Overweight'
+                      : 'Obese'}
+              </Text>
+            </View>
+          </View>
 
-              {/* Current BMI */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={styles.statHeader}>
-                  <Ionicons name="trending-up" size={12} color={colors.primary} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Current BMI</Text>
-                </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {currentBMI > 0 ? currentBMI.toFixed(1) : '—'}
+          <View style={styles.metricsGrid}>
+            {/* Weekly Average */}
+            <View
+              style={[
+                styles.metricCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <TrendDown size={20} color={colors.success} weight="bold" />
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>
+                  Weekly Avg
                 </Text>
               </View>
-
-              {/* Weight */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={styles.statHeader}>
-                  <Ionicons name="pulse" size={12} color={colors.textMuted} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Weight</Text>
-                </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {currentWeight > 0 ? (
-                    <>
-                      {currentWeight.toFixed(1)}
-                      <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kg</Text>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </Text>
-              </View>
+              <Text style={[styles.metricValue, { color: colors.text }]}>
+                {weeklyAvg > 0 ? (
+                  <>
+                    -{weeklyAvg.toFixed(2)}
+                    <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> kg</Text>
+                  </>
+                ) : (
+                  '—'
+                )}
+              </Text>
+              <Text style={[styles.metricSubtext, { color: colors.textMuted }]}>per week</Text>
             </View>
 
-            {/* Second Stats Grid - V0 Design */}
-            <View style={styles.statsGrid}>
-              {/* % Percent */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>% Percent</Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {percentChange >= 0 ? '+' : ''}
-                  {percentChange.toFixed(0)}%
-                </Text>
+            {/* To Goal */}
+            <View
+              style={[
+                styles.metricCard,
+                { backgroundColor: colors.card },
+                ShotsyDesignTokens.shadows.card,
+              ]}
+            >
+              <View style={styles.metricHeader}>
+                <Target size={20} color={colors.warning} weight="bold" />
+                <Text style={[styles.metricLabel, { color: colors.textSecondary }]}>To Goal</Text>
               </View>
-
-              {/* Weekly avg */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={styles.statHeader}>
-                  <Ionicons name="trending-down" size={12} color={colors.primary} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Weekly avg</Text>
-                </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {weeklyAvg > 0 ? (
-                    <>
-                      -{weeklyAvg.toFixed(1)}
-                      <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kg/wk</Text>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </Text>
-              </View>
-
-              {/* To goal */}
-              <View style={[styles.statCard, { backgroundColor: colors.backgroundSecondary }]}>
-                <View style={styles.statHeader}>
-                  <Ionicons name="pulse" size={12} color={colors.primary} />
-                  <Text style={[styles.statLabel, { color: colors.textSecondary }]}>To goal</Text>
-                </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
-                  {remainingToGoal > 0 ? (
-                    <>
-                      {remainingToGoal.toFixed(1)}
-                      <Text style={[styles.statUnit, { color: colors.textSecondary }]}>kg</Text>
-                      <Text style={[styles.statPercent, { color: colors.textMuted }]}>
-                        {' '}
-                        ({Math.max(0, progressPercent).toFixed(0)}%)
-                      </Text>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </Text>
-              </View>
-            </View>
-
-            {/* Weight Chart - V0 Design */}
-            <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <WeightChart
-                data={weightData.map((d) => ({ date: d.date, weight: d.weight }))}
-                targetWeight={targetWeight}
-                periodFilter={periodFilterMap[timeFilter]}
-              />
+              <Text style={[styles.metricValue, { color: colors.text }]}>
+                {remainingToGoal > 0 ? (
+                  <>
+                    {remainingToGoal.toFixed(1)}
+                    <Text style={[styles.metricUnit, { color: colors.textSecondary }]}> kg</Text>
+                  </>
+                ) : (
+                  <Text style={{ color: colors.success }}>Goal Reached! 🎉</Text>
+                )}
+              </Text>
+              <Text style={[styles.metricSubtext, { color: colors.textMuted }]}>
+                {Math.max(0, progressPercent).toFixed(0)}% complete
+              </Text>
             </View>
           </View>
         </View>
+
+        {/* Bottom spacing */}
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
@@ -287,84 +270,66 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: ShotsyDesignTokens.spacing.lg,
+    paddingTop: 60,
+    paddingBottom: ShotsyDesignTokens.spacing.md,
+    borderBottomWidth: 1,
+  },
+  headerTitle: {
+    ...ShotsyDesignTokens.typography.h2,
+    textAlign: 'center',
+  },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: 16,
-    gap: 24,
-  },
-  filtersContainer: {
-    gap: 8,
-    paddingVertical: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  filterText: {
-    fontSize: 14,
+    padding: ShotsyDesignTokens.spacing.lg,
+    paddingBottom: 100,
   },
   section: {
-    gap: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    marginTop: ShotsyDesignTokens.spacing.xl,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...ShotsyDesignTokens.typography.h3,
+    marginBottom: ShotsyDesignTokens.spacing.lg,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-  },
-  statsGrid: {
+
+  // Metrics Grid
+  metricsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    gap: ShotsyDesignTokens.spacing.md,
+    marginBottom: ShotsyDesignTokens.spacing.md,
   },
-  statCard: {
+  metricCard: {
     flex: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: ShotsyDesignTokens.borderRadius.lg,
+    padding: ShotsyDesignTokens.spacing.lg,
   },
-  statHeader: {
+  metricHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
+    gap: ShotsyDesignTokens.spacing.xs,
+    marginBottom: ShotsyDesignTokens.spacing.sm,
   },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+  metricLabel: {
+    ...ShotsyDesignTokens.typography.caption,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
+  metricValue: {
+    ...ShotsyDesignTokens.typography.h2,
+    marginBottom: 4,
   },
-  statUnit: {
-    fontSize: 14,
-    fontWeight: '400',
+  metricUnit: {
+    ...ShotsyDesignTokens.typography.body,
   },
-  statPercent: {
-    fontSize: 12,
-    fontWeight: '400',
+  metricPercent: {
+    ...ShotsyDesignTokens.typography.caption,
   },
-  chartCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    marginTop: 8,
+  metricSubtext: {
+    ...ShotsyDesignTokens.typography.caption,
+  },
+
+  bottomSpacer: {
+    height: ShotsyDesignTokens.spacing.xxl,
   },
 });
