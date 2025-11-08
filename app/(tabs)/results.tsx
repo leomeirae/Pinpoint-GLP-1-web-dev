@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Text, TouchableOpacity } from 'react-native';
 import { useColors } from '@/hooks/useShotsyColors';
 import { useWeights } from '@/hooks/useWeights';
@@ -9,6 +9,7 @@ import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import { Scales, TrendDown, TrendUp, Target } from 'phosphor-react-native';
 import { router } from 'expo-router';
 import { createLogger } from '@/lib/logger';
+import { FadeInView, ConfettiCelebration } from '@/components/animations';
 
 const logger = createLogger('Results');
 
@@ -30,6 +31,7 @@ export default function ResultsScreen() {
   const colors = useColors();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const { weights, loading: weightsLoading, refetch: refetchWeights } = useWeights();
   const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
@@ -98,6 +100,14 @@ export default function ResultsScreen() {
   const progressPercent = totalToLose > 0 ? (lost / totalToLose) * 100 : 0;
   const remainingToGoal = currentWeight - targetWeight;
 
+  // Show confetti when goal is reached
+  useEffect(() => {
+    if (remainingToGoal <= 0 && currentWeight < startWeight) {
+      // Goal achieved! Show confetti
+      setShowConfetti(true);
+    }
+  }, [remainingToGoal, currentWeight, startWeight]);
+
   // Prepare weight data for chart (with dosage info)
   const weightData = useMemo(() => {
     return filteredWeights.map((w) => {
@@ -136,14 +146,16 @@ export default function ResultsScreen() {
         contentContainerStyle={styles.content}
       >
         {/* Weight Chart V2 - Shotsy Style */}
-        <WeightChartV2
-          data={weightData}
-          targetWeight={targetWeight}
-          initialWeight={startWeight}
-        />
+        <FadeInView duration={800} delay={100}>
+          <WeightChartV2
+            data={weightData}
+            targetWeight={targetWeight}
+            initialWeight={startWeight}
+          />
+        </FadeInView>
 
         {/* Metrics Section */}
-        <View style={styles.section}>
+        <FadeInView duration={800} delay={200} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Detailed Metrics</Text>
 
           {/* Metrics Grid */}
@@ -257,11 +269,19 @@ export default function ResultsScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </FadeInView>
 
         {/* Bottom spacing */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Confetti celebration when goal is reached */}
+      {showConfetti && (
+        <ConfettiCelebration
+          count={50}
+          onComplete={() => setShowConfetti(false)}
+        />
+      )}
     </View>
   );
 }

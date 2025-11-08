@@ -13,6 +13,7 @@ import { createLogger } from '@/lib/logger';
 import { List, Plus } from 'phosphor-react-native';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import { getDosageColor } from '@/lib/dosageColors';
+import { FadeInView, ScalePress } from '@/components/animations';
 
 const logger = createLogger('Dashboard');
 
@@ -116,10 +117,10 @@ export default function DashboardScreen() {
           <List size={24} color={colors.text} weight="regular" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Summary</Text>
-        <TouchableOpacity onPress={handleAddShot} style={styles.addButton}>
+        <ScalePress onPress={handleAddShot} style={styles.addButton} hapticType="medium">
           <Plus size={20} color={colors.primary} weight="bold" />
           <Text style={[styles.addButtonText, { color: colors.primary }]}>Add shot</Text>
-        </TouchableOpacity>
+        </ScalePress>
       </View>
 
       <ScrollView
@@ -137,7 +138,7 @@ export default function DashboardScreen() {
       >
         {/* Progress Ring Section - New! */}
         {totalShots > 0 && (
-          <View style={styles.section}>
+          <FadeInView duration={800} delay={100} style={styles.section}>
             <View style={styles.progressSection}>
               <ShotsyCircularProgressV2
                 progress={adherenceRate}
@@ -185,7 +186,7 @@ export default function DashboardScreen() {
                 </View>
               </View>
             </View>
-          </View>
+          </FadeInView>
         )}
 
         {/* Stats Cards - Shotsy Style */}
@@ -230,12 +231,12 @@ export default function DashboardScreen() {
         )}
 
         {/* Estimated Medication Levels - V2 Chart */}
-        <View style={styles.section}>
+        <FadeInView duration={800} delay={200} style={styles.section}>
           <EstimatedLevelsChartV2 />
-        </View>
+        </FadeInView>
 
         {/* Next Injection */}
-        <View style={styles.section}>
+        <FadeInView duration={800} delay={300} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Next Injection</Text>
           <NextShotWidget
             totalShots={totalShots}
@@ -243,7 +244,7 @@ export default function DashboardScreen() {
             lastShotDate={lastShotDate}
             frequency={frequency}
           />
-        </View>
+        </FadeInView>
 
         {/* Bottom spacing for safe area */}
         <View style={styles.bottomSpacer} />
