@@ -83,4 +83,5 @@ BEGIN
     END,
     'Check if indexes exist'::TEXT;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = public, pg_catalog;

@@ -40,6 +40,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+.cursor/
+.claude/
+.playwright-mcp/
+.vscode/
 .clinerules/byterover-rules.md
 .kilocode/rules/byterover-rules.md
 .roo/rules/byterover-rules.md
