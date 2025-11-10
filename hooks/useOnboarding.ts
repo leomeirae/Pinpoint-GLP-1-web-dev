@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/clerk-expo';
 import { supabase } from '@/lib/supabase';
 import { trackEvent } from '@/lib/analytics';
 import { createLogger } from '@/lib/logger';
+import { logError } from '@/lib/remote-logger';
 
 const logger = createLogger('useOnboarding');
 
@@ -63,7 +64,13 @@ export function useOnboarding() {
       }
 
       if (retries === 9) {
-        throw new Error('User not found in Supabase. Please wait a moment and try again.');
+        const error = new Error('User not found in Supabase. Please wait a moment and try again.');
+        await logError('useOnboarding.waitForUser.timeout', error, {
+          userId,
+          retries,
+          maxRetries: 10,
+        });
+        throw error;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -71,7 +78,12 @@ export function useOnboarding() {
     }
 
     if (!userIdSupabase) {
-      throw new Error('User not found in Supabase. Please try again.');
+      const error = new Error('User not found in Supabase. Please try again.');
+      await logError('useOnboarding.userNotFound', error, {
+        userId,
+        retries,
+      });
+      throw error;
     }
 
     try {
@@ -150,6 +162,11 @@ export function useOnboarding() {
 
       if (userError) {
         logger.error('Error updating user', userError);
+        await logError('useOnboarding.updateUser', userError, {
+          userIdSupabase,
+          updates: userUpdates,
+          userId,
+        });
         throw userError;
       }
 
@@ -172,6 +189,14 @@ export function useOnboarding() {
 
         if (medError) {
           logger.error('Error creating medication', medError);
+          await logError('useOnboarding.insertMedication', medError, {
+            userIdSupabase,
+            medication: {
+              type: data.medication,
+              dosage: data.initial_dose,
+              frequency: data.frequency,
+            },
+          });
           throw medError;
         }
       }
@@ -201,6 +226,12 @@ export function useOnboarding() {
 
           if (weightError) {
             logger.error('Error creating initial weight log', weightError);
+            await logError('useOnboarding.insertWeightLog', weightError, {
+              userIdSupabase,
+              weight: startWeightKg,
+              date: data.start_date,
+              code: weightError.code,
+            });
             // Não falhar se já existir registro para essa data
             if (weightError.code !== '23505') {
               // Unique violation
@@ -222,9 +253,46 @@ export function useOnboarding() {
         },
       });
 
+      // VALIDAR se dados foram realmente salvos
+      logger.info('Validating saved data...', { userIdSupabase });
+      const { data: savedUser, error: verifyError } = await supabase
+        .from('users')
+        .select('onboarding_completed, height, start_weight, target_weight')
+        .eq('id', userIdSupabase)
+        .single();
+
+      if (verifyError || !savedUser) {
+        logger.error('Failed to verify saved data', verifyError);
+        await logError('useOnboarding.verifySave', verifyError || new Error('No data returned'), {
+          userIdSupabase,
+        });
+        throw new Error('Failed to verify data was saved. Please try again.');
+      }
+
+      if (!savedUser.onboarding_completed) {
+        logger.error('onboarding_completed not saved', { savedUser });
+        await logError(
+          'useOnboarding.onboardingNotSaved',
+          new Error('onboarding_completed is still false after save'),
+          { userIdSupabase, savedUser }
+        );
+        throw new Error('Data was not saved correctly. Please try again.');
+      }
+
+      logger.info('✅ Data verified successfully', { savedUser });
+
       return { success: true };
     } catch (error) {
       logger.error('Error saving onboarding data', error);
+      await logError('useOnboarding.saveOnboardingData', error, {
+        userId,
+        data: {
+          has_medication: !!data.medication,
+          has_height: !!data.height,
+          has_weight: !!data.current_weight,
+          has_target_weight: !!data.target_weight,
+        },
+      });
       trackEvent('error_occurred', {
         error_code: 'ONBOARDING_SAVE_ERROR',
         error_message: error instanceof Error ? error.message : 'Unknown error',

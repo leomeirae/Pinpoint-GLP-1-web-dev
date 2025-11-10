@@ -102,18 +102,97 @@ interface OnboardingData {
   [key: string]: any;
 }
 
-// Helper para serializar dados de forma segura
+// Helper para sanitizar dados do onboarding - manter apenas valores primitivos
+const sanitizeOnboardingData = (data: OnboardingData): OnboardingData => {
+  const sanitized: OnboardingData = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    // Apenas incluir valores primitivos, arrays de primitivos e objetos simples
+    if (value === null || value === undefined) {
+      sanitized[key] = value;
+    } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = value;
+    } else if (value instanceof Date) {
+      sanitized[key] = value.toISOString();
+    } else if (Array.isArray(value)) {
+      // Apenas arrays de primitivos
+      sanitized[key] = value.filter(item =>
+        typeof item === 'string' ||
+        typeof item === 'number' ||
+        typeof item === 'boolean' ||
+        item === null
+      );
+    } else if (typeof value === 'object') {
+      // Objetos simples (plain objects) - fazer shallow copy de valores primitivos
+      try {
+        const plainObj: any = {};
+        for (const [subKey, subValue] of Object.entries(value)) {
+          if (
+            typeof subValue === 'string' ||
+            typeof subValue === 'number' ||
+            typeof subValue === 'boolean' ||
+            subValue === null
+          ) {
+            plainObj[subKey] = subValue;
+          }
+        }
+        // Apenas incluir se tiver alguma propriedade
+        if (Object.keys(plainObj).length > 0) {
+          sanitized[key] = plainObj;
+        }
+      } catch (e) {
+        // Ignorar objetos que causam erro
+        logger.debug('Skipping object that cannot be sanitized', { key });
+      }
+    }
+  }
+
+  return sanitized;
+};
+
+// Helper para serializar dados de forma segura, removendo referencias circulares
 const serializeOnboardingData = (data: OnboardingData): string => {
-  return JSON.stringify(data, (key, value) => {
-    // Remover funções e valores não serializáveis
+  const seen = new WeakSet();
+
+  const replacer = (key: string, value: any): any => {
+    // Remover funcoes e valores nao serializaveis
     if (typeof value === 'function') return undefined;
+    if (typeof value === 'symbol') return undefined;
+    if (typeof value === 'undefined') return undefined;
+
+    // Converter Date para ISO string
     if (value instanceof Date) return value.toISOString();
+
+    // Remover objetos GraphQL que podem ter referencias circulares
     if (typeof value === 'object' && value !== null && '__typename' in value) {
-      // GraphQL objects sometimes have circular references
       return undefined;
     }
+
+    // Detectar referencias circulares
+    if (typeof value === 'object' && value !== null) {
+      // Remover propriedades conhecidas que causam problemas
+      const problematicKeys = [
+        '_owner', '_store', '$$typeof',
+        'user', 'colors', 'theme', 'auth',
+        'router', 'navigation'
+      ];
+
+      if (problematicKeys.includes(key)) {
+        return undefined;
+      }
+
+      // Verificar se ja vimos esse objeto (referencia circular)
+      if (seen.has(value)) {
+        return undefined;
+      }
+
+      seen.add(value);
+    }
+
     return value;
-  });
+  };
+
+  return JSON.stringify(data, replacer);
 };
 
 export default function OnboardingFlowScreen() {
@@ -216,9 +295,20 @@ export default function OnboardingFlowScreen() {
 
   const saveProgress = async (step: OnboardingStep, data: OnboardingData) => {
     try {
+      // Sanitizar dados antes de serializar - manter apenas valores primitivos
+      const sanitizedData = sanitizeOnboardingData(data);
+
+      logger.debug('Saving onboarding progress', {
+        step,
+        dataKeys: Object.keys(data),
+        sanitizedKeys: Object.keys(sanitizedData),
+      });
+
       // Use safe serialization to handle circular references and non-serializable types
-      const serialized = serializeOnboardingData({ step, data });
+      const serialized = serializeOnboardingData({ step, data: sanitizedData });
       await AsyncStorage.setItem(ONBOARDING_PROGRESS_KEY, serialized);
+
+      logger.debug('Onboarding progress saved successfully', { step });
     } catch (error) {
       logger.error('Error saving onboarding progress', error as Error);
       // Don't throw - allow flow to continue even if save fails
