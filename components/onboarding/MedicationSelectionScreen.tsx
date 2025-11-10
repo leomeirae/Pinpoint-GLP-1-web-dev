@@ -29,7 +29,6 @@ export function MedicationSelectionScreen({ onNext, onBack }: MedicationSelectio
       onNext={handleNext}
       onBack={onBack}
       disableNext={!selected}
-      progress={40}
     >
       <View style={styles.content}>
         {medications.map((medication) => (

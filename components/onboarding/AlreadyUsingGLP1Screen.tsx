@@ -28,7 +28,6 @@ export function AlreadyUsingGLP1Screen({ onNext, onBack }: AlreadyUsingGLP1Scree
       onNext={handleNext}
       onBack={onBack}
       disableNext={selected === null}
-      progress={30}
     >
       {/* Logo Section - V0 Design */}
       <View style={styles.logoSection}>

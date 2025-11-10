@@ -40,7 +40,6 @@ export function TargetWeightScreen({
       subtitle="Agora vamos definir seu peso-alvo. Isso nos ajudará a personalizar suas metas."
       onNext={handleNext}
       onBack={onBack}
-      progress={45}
     >
       <View style={styles.content}>
         {/* Goal Weight Display - V0 Design */}

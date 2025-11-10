@@ -47,7 +47,6 @@ export function StartingWeightScreen({
       subtitle="Adicione o peso que você tinha quando começou sua jornada, junto com a data de início."
       onNext={handleNext}
       onBack={onBack}
-      progress={40}
     >
       <View style={styles.content}>
         {/* Starting Weight Card - V0 Design */}

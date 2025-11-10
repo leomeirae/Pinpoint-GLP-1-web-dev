@@ -94,7 +94,17 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'app-rating',
 ];
 
-const TOTAL_STEPS = ONBOARDING_STEPS.length; // 22 steps (sem welcome)
+// Core-8: Fluxo enxuto com apenas as telas essenciais
+const ONBOARDING_STEPS_CORE8: OnboardingStep[] = [
+  'medication',
+  'initial-dose',
+  'device-type',
+  'frequency',
+  'health-disclaimer',
+  'current-weight',
+  'starting-weight',
+  'target-weight',
+];
 
 const ONBOARDING_PROGRESS_KEY = '@mounjaro:onboarding_progress';
 
@@ -201,8 +211,14 @@ export default function OnboardingFlowScreen() {
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { user, loading: userLoading } = useUser();
   const use23Steps = useFeatureFlag('FF_ONBOARDING_23');
+  const useCore8 = useFeatureFlag('FF_ONBOARDING_CORE8');
 
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('widgets');
+  // Selecionar array de steps baseado na feature flag
+  // Prioridade: Core-8 > 23 steps > fallback para 23 steps
+  const activeSteps = useCore8 ? ONBOARDING_STEPS_CORE8 : ONBOARDING_STEPS;
+  const TOTAL_STEPS = activeSteps.length;
+
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>(activeSteps[0]);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -246,9 +262,11 @@ export default function OnboardingFlowScreen() {
 
   // Track onboarding started (quando carrega a primeira tela)
   useEffect(() => {
-    if (currentStep === 'widgets' && !isLoading && authLoaded && isSignedIn) {
+    if (currentStep === activeSteps[0] && !isLoading && authLoaded && isSignedIn) {
       trackEvent('onboarding_started', {
         source: 'sign_up',
+        total_steps: TOTAL_STEPS,
+        flow_type: useCore8 ? 'core8' : 'full',
       });
     }
   }, [currentStep, isLoading, authLoaded, isSignedIn]);
@@ -256,7 +274,7 @@ export default function OnboardingFlowScreen() {
   // Track screen view
   useEffect(() => {
     if (!isLoading && authLoaded && isSignedIn) {
-      const stepIndex = ONBOARDING_STEPS.indexOf(currentStep);
+      const stepIndex = activeSteps.indexOf(currentStep);
       trackEvent('onboarding_step_viewed', {
         step_number: stepIndex + 1,
         step_name: currentStep,
@@ -281,7 +299,8 @@ export default function OnboardingFlowScreen() {
       const saved = await AsyncStorage.getItem(ONBOARDING_PROGRESS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.step && ONBOARDING_STEPS.includes(parsed.step)) {
+        // Validar se o step salvo está no array ativo
+        if (parsed.step && activeSteps.includes(parsed.step)) {
           setCurrentStep(parsed.step);
           setOnboardingData(parsed.data || {});
         }
@@ -317,7 +336,7 @@ export default function OnboardingFlowScreen() {
   };
 
   const handleStepComplete = (step: OnboardingStep, data?: Partial<OnboardingData>) => {
-    const stepIndex = ONBOARDING_STEPS.indexOf(step);
+    const stepIndex = activeSteps.indexOf(step);
     const newData = { ...onboardingData, ...data };
 
     // Calculate time spent on this step
@@ -343,10 +362,10 @@ export default function OnboardingFlowScreen() {
         from_step: stepIndex + 1,
         to_step: nextIndex + 1,
         from_step_name: step,
-        to_step_name: ONBOARDING_STEPS[nextIndex],
+        to_step_name: activeSteps[nextIndex],
       });
 
-      setCurrentStep(ONBOARDING_STEPS[nextIndex]);
+      setCurrentStep(activeSteps[nextIndex]);
     } else {
       // Onboarding completo
       completeOnboarding(newData);
@@ -354,9 +373,9 @@ export default function OnboardingFlowScreen() {
   };
 
   const handleStepBack = () => {
-    const stepIndex = ONBOARDING_STEPS.indexOf(currentStep);
+    const stepIndex = activeSteps.indexOf(currentStep);
     if (stepIndex > 0) {
-      const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+      const previousStep = activeSteps[stepIndex - 1];
 
       // Track voltar para step anterior
       trackEvent('onboarding_step_back', {
@@ -403,7 +422,7 @@ export default function OnboardingFlowScreen() {
   };
 
   const handleSkip = () => {
-    const stepIndex = ONBOARDING_STEPS.indexOf(currentStep);
+    const stepIndex = activeSteps.indexOf(currentStep);
     trackEvent('onboarding_step_skipped', {
       step_number: stepIndex + 1,
       step_name: currentStep,
@@ -503,8 +522,9 @@ export default function OnboardingFlowScreen() {
             onNext={(consentAccepted) => {
               if (consentAccepted) {
                 trackEvent('onboarding_consent_accepted', {
-                  step_number: ONBOARDING_STEPS.indexOf('health-disclaimer') + 1,
+                  step_number: activeSteps.indexOf('health-disclaimer') + 1,
                   timestamp: new Date().toISOString(),
+                  consent_version: '1.0.0', // Versão para auditoria
                 });
               }
               handleStepComplete('health-disclaimer');
@@ -572,7 +592,7 @@ export default function OnboardingFlowScreen() {
 
       {/* Progress Bar */}
       <OnboardingProgressBar
-        current={ONBOARDING_STEPS.indexOf(currentStep) + 1}
+        current={activeSteps.indexOf(currentStep) + 1}
         total={TOTAL_STEPS}
       />
 

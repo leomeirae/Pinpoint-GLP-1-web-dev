@@ -32,9 +32,13 @@ export function HealthDisclaimerScreen({ onNext, onBack }: HealthDisclaimerScree
         <Text style={[styles.title, { color: colors.text }]}>Aviso de Saúde</Text>
 
         <Text style={[styles.text, { color: colors.textSecondary }]}>
-          As informações fornecidas por este aplicativo são apenas para fins de acompanhamento e educação. O Mounjaro
-          Tracker não deve ser usado como substituto de aconselhamento médico profissional, diagnóstico ou tratamento.
+          As informações fornecidas por este aplicativo são apenas para fins de acompanhamento e educação. O Pinpoint GLP-1
+          não deve ser usado como substituto de aconselhamento médico profissional, diagnóstico ou tratamento.
           Sempre consulte seu médico ou outro profissional de saúde qualificado antes de tomar decisões médicas.
+        </Text>
+
+        <Text style={[styles.textHighlight, { color: colors.text }]}>
+          <Text style={{ fontWeight: '700' }}>⚕️ Prescrição Obrigatória no Brasil:</Text> O uso de medicamentos GLP-1 (Mounjaro®, Ozempic®, Wegovy®) requer prescrição e acompanhamento médico contínuo.
         </Text>
 
         <View style={[styles.switchContainer, { borderTopColor: colors.border }]}>
@@ -106,7 +110,16 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 16,
     lineHeight: 24,
+    marginBottom: 16,
+  },
+  textHighlight: {
+    fontSize: 15,
+    lineHeight: 22,
     marginBottom: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 8,
   },
   switchContainer: {
     flexDirection: 'row',

@@ -16,7 +16,6 @@ interface OnboardingScreenBaseProps {
   showBackButton?: boolean;
   loading?: boolean;
   contentContainerStyle?: any;
-  progress?: number; // Progress percentage (0-100)
 }
 
 export function OnboardingScreenBase({
@@ -30,7 +29,6 @@ export function OnboardingScreenBase({
   showBackButton = true,
   loading = false,
   contentContainerStyle,
-  progress,
 }: OnboardingScreenBaseProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -43,28 +41,11 @@ export function OnboardingScreenBase({
         </TouchableOpacity>
       )}
 
-      {/* Progress Bar - V0 Design */}
-      {progress !== undefined && (
-        <View style={[styles.progressContainer, { top: insets.top + 60 }]}>
-          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${progress}%`,
-                  backgroundColor: colors.primary,
-                },
-              ]}
-            />
-          </View>
-        </View>
-      )}
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: insets.top + 60, paddingBottom: insets.bottom + 100 },
+          { paddingTop: 16, paddingBottom: insets.bottom + 100 },
           contentContainerStyle,
         ]}
         showsVerticalScrollIndicator={false}
@@ -116,22 +97,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  progressContainer: {
-    position: 'absolute',
-    left: 24,
-    right: 24,
-    zIndex: 9,
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
   },
   scrollView: {
     flex: 1,

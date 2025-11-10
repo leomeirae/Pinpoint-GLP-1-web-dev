@@ -61,7 +61,6 @@ export function CurrentWeightScreen({ onNext, onBack }: CurrentWeightScreenProps
       onNext={handleNext}
       onBack={onBack}
       disableNext={weight === null}
-      progress={35}
     >
       <View style={styles.content}>
         {/* Weight Picker - V0 Design */}

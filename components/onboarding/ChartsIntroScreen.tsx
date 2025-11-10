@@ -52,7 +52,6 @@ export function ChartsIntroScreen({ onNext, onBack }: ChartsIntroScreenProps) {
       subtitle="Sinta-se mais confiante aprendendo mais sobre como esses medicamentos funcionam."
       onNext={onNext}
       onBack={onBack}
-      progress={75}
     >
       <View style={styles.content}>
         {/* Chart container - V0 Design */}
