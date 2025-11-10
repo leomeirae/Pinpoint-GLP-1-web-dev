@@ -51,7 +51,6 @@ export function HeightInputScreen({ onNext, onBack }: HeightInputScreenProps) {
       subtitle="Sua altura nos ajuda a calcular seu IMC e personalizar seus objetivos."
       onNext={handleNext}
       onBack={onBack}
-      progress={30}
     >
       <View style={styles.content}>
         {/* Height Picker - V0 Design */}

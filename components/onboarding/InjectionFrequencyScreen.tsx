@@ -39,7 +39,6 @@ export function InjectionFrequencyScreen({ onNext, onBack }: InjectionFrequencyS
       onNext={handleNext}
       onBack={onBack}
       disableNext={!isValid}
-      progress={70}
     >
       <View style={styles.content}>
         {frequencies.map((freq) => {

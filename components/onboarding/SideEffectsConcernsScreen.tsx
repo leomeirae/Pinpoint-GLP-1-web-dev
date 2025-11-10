@@ -33,7 +33,6 @@ export function SideEffectsConcernsScreen({ onNext, onBack }: SideEffectsConcern
       onNext={handleNext}
       onBack={onBack}
       disableNext={selected.length === 0}
-      progress={90}
     >
       <View style={styles.content}>
         {options.map((option) => {

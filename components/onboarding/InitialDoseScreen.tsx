@@ -35,7 +35,6 @@ export function InitialDoseScreen({
       onNext={handleNext}
       onBack={onBack}
       disableNext={!selected}
-      progress={50}
     >
       <View style={styles.content}>
         {dosages.map((dosage) => (

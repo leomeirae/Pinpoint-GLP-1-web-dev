@@ -216,11 +216,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 12,
-    lineHeight: 40,
+    lineHeight: 36,
   },
   subtitle: {
     fontSize: 16,

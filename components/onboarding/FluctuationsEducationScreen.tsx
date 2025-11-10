@@ -34,7 +34,6 @@ export function FluctuationsEducationScreen({ onNext, onBack }: FluctuationsEduc
       subtitle="A jornada com GLP-1 pode ter altos e baixos. O Pinpoint GLP-1 vai ajudar você a entender as flutuações e como equilibrar os efeitos colaterais com o progresso."
       onNext={onNext}
       onBack={onBack}
-      progress={65}
     >
       <View style={styles.content}>
         {/* Chart Card - V0 Design */}
