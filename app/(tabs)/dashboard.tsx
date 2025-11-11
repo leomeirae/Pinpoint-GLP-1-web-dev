@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ScrollView, View, StyleSheet, RefreshControl, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useShotsyColors';
 import { EstimatedLevelsChartV2 } from '@/components/dashboard/EstimatedLevelsChartV2';
 import { NextShotWidget } from '@/components/dashboard/NextShotWidget';
@@ -110,7 +111,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header - Shotsy Style */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity style={styles.menuButton}>
@@ -245,11 +246,8 @@ export default function DashboardScreen() {
             frequency={frequency}
           />
         </FadeInView>
-
-        {/* Bottom spacing for safe area */}
-        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -262,7 +260,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: ShotsyDesignTokens.spacing.lg,
-    paddingTop: 60,
     paddingBottom: ShotsyDesignTokens.spacing.md,
     borderBottomWidth: 1,
   },
@@ -280,8 +277,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   addButtonText: {
-    ...ShotsyDesignTokens.typography.label,
-    fontWeight: '600',
+    ...ShotsyDesignTokens.typography.buttonSmall,
   },
   scrollView: {
     flex: 1,
@@ -340,9 +336,5 @@ const styles = StyleSheet.create({
   },
   statValue: {
     ...ShotsyDesignTokens.typography.h2,
-  },
-
-  bottomSpacer: {
-    height: ShotsyDesignTokens.spacing.xxl,
   },
 });

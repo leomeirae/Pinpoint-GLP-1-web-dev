@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, TextInput } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useColors } from '@/hooks/useShotsyColors';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -15,10 +15,11 @@ interface StartingWeightScreenProps {
 export function StartingWeightScreen({
   onNext,
   onBack,
-  startWeight = 0,
+  startWeight = 70, // Default to a more realistic weight
   startDate: initialDate,
 }: StartingWeightScreenProps) {
   const colors = useColors();
+  const [weight, setWeight] = useState(startWeight);
   const [startDate, setStartDate] = useState(
     initialDate ? new Date(initialDate) : new Date()
   );
@@ -35,10 +36,10 @@ export function StartingWeightScreen({
   };
 
   const handleNext = () => {
-        onNext({
-      startingWeight: startWeight,
-          startDate: startDate.toISOString().split('T')[0],
-        });
+    onNext({
+      startingWeight: weight,
+      startDate: startDate.toISOString().split('T')[0],
+    });
   };
 
   return (
@@ -49,19 +50,22 @@ export function StartingWeightScreen({
       onBack={onBack}
     >
       <View style={styles.content}>
-        {/* Starting Weight Card - V0 Design */}
+        {/* Starting Weight Card - V1 Design (Editable) */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
           <View style={styles.cardContent}>
             <Ionicons name="scale" size={32} color={colors.textSecondary} />
             <View style={styles.cardText}>
-            <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Peso Inicial</Text>
-              <Text style={[styles.cardValue, { color: colors.text }]}>{startWeight}kg</Text>
+              <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Peso Inicial (kg)</Text>
+              <TextInput
+                style={[styles.cardValue, { color: colors.text }]}
+                value={String(weight)}
+                onChangeText={(text) => setWeight(Number(text.replace(',', '.')) || 0)}
+                keyboardType="numeric"
+                returnKeyType="done"
+              />
             </View>
           </View>
-          <TouchableOpacity>
-            <Ionicons name="pencil" size={24} color={colors.textMuted} />
-          </TouchableOpacity>
-            </View>
+        </View>
 
         {/* Start Date Card - V0 Design */}
         <TouchableOpacity

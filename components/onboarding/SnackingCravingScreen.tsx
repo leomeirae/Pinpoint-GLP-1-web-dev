@@ -5,9 +5,10 @@ import { useColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
 import { ShotsyCard } from '@/components/ui/shotsy-card';
 import { Ionicons } from '@expo/vector-icons';
+import { Brain } from 'phosphor-react-native';
 
-interface FoodNoiseScreenProps {
-  onNext: (data: { foodNoiseDay: string }) => void;
+interface SnackingCravingScreenProps {
+  onNext: (data: { cravingDay: string }) => void;
   onBack: () => void;
 }
 
@@ -22,30 +23,30 @@ const daysOfWeek = [
   { id: 'none', label: 'Não tenho um dia específico' },
 ];
 
-export function FoodNoiseScreen({ onNext, onBack }: FoodNoiseScreenProps) {
+export function SnackingCravingScreen({ onNext, onBack }: SnackingCravingScreenProps) {
   const colors = useColors();
   const { currentAccent } = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
 
   const handleNext = () => {
     if (selected) {
-      onNext({ foodNoiseDay: selected });
+      onNext({ cravingDay: selected });
     }
   };
 
   return (
     <OnboardingScreenBase
-      title="Em qual dia da semana você costuma ter mais 'food noise'?"
-      subtitle="Food noise são pensamentos constantes sobre comida que dificultam manter a dieta"
+      title="Em qual dia da semana você costuma ter mais vontade de beliscar?"
+      subtitle="Entender seus gatilhos nos ajuda a criar um plano mais eficaz para você."
       onNext={handleNext}
       onBack={onBack}
       disableNext={!selected}
     >
       <View style={styles.content}>
         <ShotsyCard style={styles.explanationCard}>
-          <Text style={styles.explanationEmoji}>🧠</Text>
+          <Brain size={48} color={colors.primary} />
           <Text style={[styles.explanationTitle, { color: colors.text }]}>
-            O que é "food noise"?
+            O que é a "vontade de beliscar"?
           </Text>
           <Text style={[styles.explanationText, { color: colors.textSecondary }]}>
             São pensamentos intrusivos e constantes sobre comida, tornando difícil resistir a
@@ -88,15 +89,12 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-  explanationEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
   explanationTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
     textAlign: 'center',
+    marginTop: 12,
   },
   explanationText: {
     fontSize: 14,
