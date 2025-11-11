@@ -22,7 +22,7 @@ export { MotivationalMessageScreen } from './MotivationalMessageScreen';
 export { WeightLossRateScreen } from './WeightLossRateScreen';
 export { DailyRoutineScreen } from './DailyRoutineScreen';
 export { FluctuationsEducationScreen } from './FluctuationsEducationScreen';
-export { FoodNoiseScreen } from './FoodNoiseScreen';
+export { SnackingCravingScreen } from './SnackingCravingScreen';
 export { SideEffectsConcernsScreen } from './SideEffectsConcernsScreen';
 export { MotivationScreen } from './MotivationScreen';
 export { AppRatingScreen } from './AppRatingScreen';

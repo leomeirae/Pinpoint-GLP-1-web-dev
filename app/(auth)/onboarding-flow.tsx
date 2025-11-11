@@ -37,7 +37,7 @@ import {
   WeightLossRateScreen,
   DailyRoutineScreen,
   FluctuationsEducationScreen,
-  FoodNoiseScreen,
+  SnackingCravingScreen,
   SideEffectsConcernsScreen,
   MotivationScreen,
   AppRatingScreen,
@@ -63,7 +63,7 @@ export type OnboardingStep =
   | 'weight-loss-rate'
   | 'daily-routine'
   | 'fluctuations'
-  | 'food-noise'
+  | 'snacking-craving'
   | 'side-effects'
   | 'motivation'
   | 'app-rating';
@@ -88,7 +88,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   'weight-loss-rate',
   'daily-routine',
   'fluctuations',
-  'food-noise',
+  'snacking-craving',
   'side-effects',
   'motivation',
   'app-rating',
@@ -541,7 +541,6 @@ export default function OnboardingFlowScreen() {
           <StartingWeightScreen
             onNext={handleNextWithData}
             onBack={handleStepBack}
-            weightUnit={onboardingData.weightUnit || 'kg'}
           />
         );
       case 'target-weight':
@@ -549,7 +548,6 @@ export default function OnboardingFlowScreen() {
           <TargetWeightScreen
             onNext={handleNextWithData}
             onBack={handleStepBack}
-            weightUnit={onboardingData.weightUnit || 'kg'}
             currentWeight={onboardingData.currentWeight || 0}
             startingWeight={onboardingData.startingWeight || 0}
             height={onboardingData.height || 170}
@@ -568,8 +566,8 @@ export default function OnboardingFlowScreen() {
             onBack={handleStepBack}
           />
         );
-      case 'food-noise':
-        return <FoodNoiseScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'snacking-craving':
+        return <SnackingCravingScreen onNext={handleNextWithData} onBack={handleStepBack} />;
       case 'side-effects':
         return <SideEffectsConcernsScreen onNext={handleNextWithData} onBack={handleStepBack} />;
       case 'motivation':
