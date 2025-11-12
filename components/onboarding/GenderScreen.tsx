@@ -48,6 +48,9 @@ export function GenderScreen({ onNext, onBack }: GenderScreenProps) {
               },
             ]}
             onPress={() => setSelected(option.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Selecionar gênero ${option.label}`}
+            accessibilityState={{ selected: selected === option.id }}
           >
             <Text style={[styles.optionLabel, { color: colors.text }]}>{option.label}</Text>
           </TouchableOpacity>

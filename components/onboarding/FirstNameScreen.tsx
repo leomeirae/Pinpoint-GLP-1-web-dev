@@ -44,6 +44,8 @@ export function FirstNameScreen({ onNext, onBack }: FirstNameScreenProps) {
           autoFocus
           returnKeyType="done"
           onSubmitEditing={handleNext}
+          accessibilityLabel="Campo de nome"
+          accessibilityHint="Digite seu primeiro nome"
         />
       </View>
     </OnboardingScreenBase>

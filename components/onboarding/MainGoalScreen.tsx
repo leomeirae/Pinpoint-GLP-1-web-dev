@@ -48,6 +48,9 @@ export function MainGoalScreen({ onNext, onBack }: MainGoalScreenProps) {
               },
             ]}
             onPress={() => setSelected(option.id)}
+            accessibilityRole="button"
+            accessibilityLabel={`Selecionar objetivo ${option.label}`}
+            accessibilityState={{ selected: selected === option.id }}
           >
             <Text style={[styles.optionLabel, { color: colors.text }]}>{option.label}</Text>
           </TouchableOpacity>

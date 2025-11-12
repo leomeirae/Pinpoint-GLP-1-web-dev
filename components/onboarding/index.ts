@@ -1,6 +1,7 @@
 // Componentes base
 export { OnboardingProgressBar } from './OnboardingProgressBar';
 export { OnboardingScreenBase } from './OnboardingScreenBase';
+export { FeatureHookScreen } from './FeatureHookScreen';
 
 // Telas de onboarding (1-23)
 export { FirstNameScreen } from './FirstNameScreen';
