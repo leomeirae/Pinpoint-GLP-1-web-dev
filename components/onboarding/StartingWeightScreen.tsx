@@ -4,10 +4,12 @@ import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useColors } from '@/hooks/useShotsyColors';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
+import { ShotsyButton } from '@/components/ui/shotsy-button';
 
 interface StartingWeightScreenProps {
   onNext: (data: { startingWeight: number; startDate: string }) => void;
   onBack: () => void;
+  onSkip: () => void;
   startWeight?: number;
   startDate?: string;
 }
@@ -15,11 +17,12 @@ interface StartingWeightScreenProps {
 export function StartingWeightScreen({
   onNext,
   onBack,
-  startWeight = 70, // Default to a more realistic weight
+  onSkip,
+  startWeight = 70,
   startDate: initialDate,
 }: StartingWeightScreenProps) {
   const colors = useColors();
-  const [weight, setWeight] = useState(startWeight);
+  const [weight, setWeight] = useState<number | null>(startWeight);
   const [startDate, setStartDate] = useState(
     initialDate ? new Date(initialDate) : new Date()
   );
@@ -36,21 +39,23 @@ export function StartingWeightScreen({
   };
 
   const handleNext = () => {
-    onNext({
-      startingWeight: weight,
-      startDate: startDate.toISOString().split('T')[0],
-    });
+    if (weight !== null) {
+        onNext({
+        startingWeight: weight,
+        startDate: startDate.toISOString().split('T')[0],
+        });
+    }
   };
 
   return (
     <OnboardingScreenBase
-      title="Conte-nos como você estava quando começou."
-      subtitle="Adicione o peso que você tinha quando começou sua jornada, junto com a data de início."
+      title="Qual era o seu peso quando começou o tratamento?"
+      subtitle="Este será o ponto de partida da sua jornada."
       onNext={handleNext}
       onBack={onBack}
+      disableNext={weight === null}
     >
       <View style={styles.content}>
-        {/* Starting Weight Card - V1 Design (Editable) */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
           <View style={styles.cardContent}>
             <Ionicons name="scale" size={32} color={colors.textSecondary} />
@@ -58,8 +63,10 @@ export function StartingWeightScreen({
               <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Peso Inicial (kg)</Text>
               <TextInput
                 style={[styles.cardValue, { color: colors.text }]}
-                value={String(weight)}
-                onChangeText={(text) => setWeight(Number(text.replace(',', '.')) || 0)}
+                value={weight !== null ? String(weight) : ''}
+                onChangeText={(text) => setWeight(Number(text.replace(',', '.')) || null)}
+                placeholder="--.-"
+                placeholderTextColor={colors.textMuted}
                 keyboardType="numeric"
                 returnKeyType="done"
               />
@@ -67,36 +74,12 @@ export function StartingWeightScreen({
           </View>
         </View>
 
-        {/* Start Date Card - V0 Design */}
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}
-        >
-            <View style={styles.cardContent}>
-            <Ionicons name="calendar" size={32} color={colors.textSecondary} />
-            <View style={styles.cardText}>
-              <Text style={[styles.cardLabel, { color: colors.textSecondary }]}>Data de Início</Text>
-              <Text style={[styles.cardValue, { color: colors.text }]}>{formatDate(startDate)}</Text>
-            </View>
-            </View>
-          <TouchableOpacity>
-            <Ionicons name="pencil" size={24} color={colors.textMuted} />
-          </TouchableOpacity>
-        </TouchableOpacity>
-
-        {/* Date Picker */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={startDate}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, date) => {
-              setShowDatePicker(Platform.OS === 'ios' ? showDatePicker : false);
-              if (date) setStartDate(date);
-            }}
-            maximumDate={new Date()}
-          />
-        )}
+        <ShotsyButton
+            title="Não lembro"
+            onPress={onSkip}
+            variant="ghost"
+            style={{ marginTop: 12 }}
+        />
       </View>
     </OnboardingScreenBase>
   );
@@ -132,4 +115,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

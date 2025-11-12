@@ -3,19 +3,21 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useColors } from '@/hooks/useShotsyColors';
 import { useTheme } from '@/lib/theme-context';
+import { ShotsyButton } from '@/components/ui/shotsy-button';
 
 interface InitialDoseScreenProps {
   onNext: (data: { initialDose: string }) => void;
   onBack: () => void;
+  onSkip: () => void;
   medication?: string;
 }
 
-// V0 Design: Simple list with "Outro" option
 const dosages = ['2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg', 'Outro'];
 
 export function InitialDoseScreen({
   onNext,
   onBack,
+  onSkip,
   medication = 'tirzepatide',
 }: InitialDoseScreenProps) {
   const colors = useColors();
@@ -67,6 +69,12 @@ export function InitialDoseScreen({
             </View>
           </TouchableOpacity>
         ))}
+        <ShotsyButton
+            title="Não tenho certeza"
+            onPress={onSkip}
+            variant="ghost"
+            style={{ marginTop: 12 }}
+        />
       </View>
     </OnboardingScreenBase>
   );

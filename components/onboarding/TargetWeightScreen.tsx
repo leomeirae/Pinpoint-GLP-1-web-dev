@@ -1,34 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { OnboardingScreenBase } from './OnboardingScreenBase';
 import { useColors } from '@/hooks/useShotsyColors';
-import { useTheme } from '@/lib/theme-context';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
+import { ShotsyButton } from '@/components/ui/shotsy-button';
+import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 
 interface TargetWeightScreenProps {
-  onNext: (data: { targetWeight: number }) => void;
+  onNext: (data: { targetWeight: number }) from => void;
   onBack: () => void;
-  currentWeight?: number;
-  startingWeight?: number;
-  height?: number;
+  onSkip: () => void;
+  currentWeight: number;
+  height: number;
 }
 
-// V0 Design: Simple range 70-80kg
-const MIN_WEIGHT = 70;
-const MAX_WEIGHT = 80;
-const BMI = 24.5; // Fixed BMI for V0 design
+const calculateBmi = (weight: number, heightCm: number) => {
+  if (heightCm === 0) return 0;
+  const heightM = heightCm / 100;
+  return weight / (heightM * heightM);
+};
 
 export function TargetWeightScreen({
   onNext,
   onBack,
-  currentWeight = 0,
-  startingWeight = 0,
+  onSkip,
+  currentWeight = 80,
   height = 170,
 }: TargetWeightScreenProps) {
   const colors = useColors();
-  const { currentAccent } = useTheme();
-  const [targetWeight, setTargetWeight] = useState(75);
+
+  const initialTarget = Math.round(currentWeight * 0.9); // Sugestão inicial de 10% de perda
+  const [targetWeight, setTargetWeight] = useState(initialTarget);
+
+  const weightRange = useMemo(() => {
+    const min = Math.max(40, Math.round(currentWeight * 0.7)); // Mínimo de 40kg ou 70% do peso atual
+    const max = currentWeight;
+    return { min, max };
+  }, [currentWeight]);
+
+  const bmi = useMemo(() => calculateBmi(targetWeight, height), [targetWeight, height]);
 
   const handleNext = () => {
     onNext({ targetWeight });
@@ -36,26 +47,24 @@ export function TargetWeightScreen({
 
   return (
     <OnboardingScreenBase
-      title="Peso meta"
-      subtitle="Agora vamos definir seu peso-alvo. Isso nos ajudará a personalizar suas metas."
+      title="Qual peso você gostaria de alcançar?"
+      subtitle="Ter uma meta em mente pode ajudar muito na motivação!"
       onNext={handleNext}
       onBack={onBack}
     >
       <View style={styles.content}>
-        {/* Goal Weight Display - V0 Design */}
         <View style={[styles.card, { backgroundColor: colors.backgroundSecondary }]}>
           <View style={styles.weightDisplay}>
-          <Text style={[styles.weightValue, { color: colors.text }]}>
+            <Text style={[styles.weightValue, { color: colors.text }]}>
               {targetWeight}kg
-          </Text>
+            </Text>
           </View>
 
-          {/* Slider - V0 Design */}
           <View style={styles.sliderContainer}>
             <Slider
               style={styles.slider}
-              minimumValue={MIN_WEIGHT}
-              maximumValue={MAX_WEIGHT}
+              minimumValue={weightRange.min}
+              maximumValue={weightRange.max}
               step={1}
               value={targetWeight}
               onValueChange={(value) => {
@@ -67,48 +76,17 @@ export function TargetWeightScreen({
               thumbTintColor={colors.primary}
             />
             <View style={styles.rangeLabels}>
-              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>{MIN_WEIGHT}</Text>
-              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>{MAX_WEIGHT}</Text>
+              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>{weightRange.min}kg</Text>
+              <Text style={[styles.rangeLabel, { color: colors.textMuted }]}>{weightRange.max}kg</Text>
             </View>
           </View>
+        </View>
 
-          {/* BMI Display - V0 Design */}
-          <View style={styles.bmiDisplay}>
-            <Text style={[styles.bmiValue, { color: '#10B981' }]}>{BMI}</Text>
-            <Text style={[styles.bmiLabel, { color: colors.textSecondary }]}>IMC</Text>
-            <View style={[styles.bmiPill, { backgroundColor: '#D1FAE5' }]}>
-              <Text style={[styles.bmiPillText, { color: '#065F46' }]}>Peso Normal</Text>
-            </View>
-          </View>
-
-          {/* BMI Scale - V0 Design */}
-          <View style={styles.bmiScale}>
-            <View style={styles.bmiBar}>
-              <View style={[styles.bmiSegment, { flex: 0.2, backgroundColor: '#A855F7' }]} />
-              <View style={[styles.bmiSegment, { flex: 0.3, backgroundColor: '#10B981' }]} />
-              <View style={[styles.bmiSegment, { flex: 0.25, backgroundColor: '#F59E0B' }]} />
-              <View style={[styles.bmiSegment, { flex: 0.25, backgroundColor: '#EF4444' }]} />
-            </View>
-            <View style={styles.bmiLabels}>
-              <View style={styles.bmiLabelItem}>
-                <Text style={[styles.bmiCategoryLabel, { color: '#A855F7' }]}>Baixo</Text>
-                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>&lt;18.5</Text>
-              </View>
-              <View style={styles.bmiLabelItem}>
-                <Text style={[styles.bmiCategoryLabel, { color: '#10B981' }]}>Saudável</Text>
-                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>18.5–25</Text>
-              </View>
-              <View style={styles.bmiLabelItem}>
-                <Text style={[styles.bmiCategoryLabel, { color: '#F59E0B' }]}>Alto</Text>
-                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>25–30</Text>
-              </View>
-              <View style={styles.bmiLabelItem}>
-                <Text style={[styles.bmiCategoryLabel, { color: '#EF4444' }]}>Muito Alto</Text>
-                <Text style={[styles.bmiRange, { color: colors.textMuted }]}>30+</Text>
-              </View>
-            </View>
-          </View>
-          </View>
+        <ShotsyButton
+            title="Não tenho certeza"
+            onPress={onSkip}
+            variant="ghost"
+        />
       </View>
     </OnboardingScreenBase>
   );
@@ -128,13 +106,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   weightValue: {
+    ...ShotsyDesignTokens.typography.h1,
     fontSize: 48,
-    fontWeight: '700',
-    marginBottom: 8,
   },
   sliderContainer: {
     width: '100%',
-    marginBottom: 24,
   },
   slider: {
     width: '100%',
@@ -146,58 +122,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   rangeLabel: {
-    fontSize: 14,
-  },
-  bmiDisplay: {
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 6,
-  },
-  bmiValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  bmiLabel: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  bmiPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
-  bmiPillText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  bmiScale: {
-    width: '100%',
-  },
-  bmiBar: {
-    flexDirection: 'row',
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  bmiSegment: {
-    height: '100%',
-  },
-  bmiLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  bmiLabelItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  bmiCategoryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bmiRange: {
-    fontSize: 11,
-    marginTop: 2,
+    ...ShotsyDesignTokens.typography.caption,
   },
 });

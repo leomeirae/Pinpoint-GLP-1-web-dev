@@ -1,8 +1,15 @@
 // Componentes base
 export { OnboardingProgressBar } from './OnboardingProgressBar';
 export { OnboardingScreenBase } from './OnboardingScreenBase';
+export { FeatureHookScreen } from './FeatureHookScreen';
 
 // Telas de onboarding (1-23)
+export { FirstNameScreen } from './FirstNameScreen';
+export { GenderScreen } from './GenderScreen';
+export { BirthDateScreen } from './BirthDateScreen';
+export { MainGoalScreen } from './MainGoalScreen';
+export { StartingWeightDateScreen } from './StartingWeightDateScreen';
+export { SuccessScreen } from './SuccessScreen';
 export { WelcomeScreen } from './WelcomeScreen';
 export { WidgetsIntroScreen } from './WidgetsIntroScreen';
 export { ChartsIntroScreen } from './ChartsIntroScreen';
