@@ -21,7 +21,8 @@ const coachmarks: Coachmark[] = [
   { id: 'add_dose', title: 'Adicionar Dose', description: 'Toque aqui para registrar sua primeira aplicação de medicamento.', actionText: 'Registrar agora', onAction: () => router.push('/(tabs)/add-application') },
   { id: 'add_weight', title: 'Registrar Peso', description: 'Acompanhe seu progresso registrando seu peso regularmente.', actionText: 'Pesar agora', onAction: () => router.push('/(tabs)/add-weight') },
   { id: 'add_purchase', title: 'Adicionar Compra', description: 'Use o módulo de custos para acompanhar seus gastos com o tratamento.', actionText: 'Adicionar compra', onAction: () => router.push('/(tabs)/add-purchase') },
-  // Os coachmarks de Álcool e Pausa serão adicionados quando os módulos existirem
+  { id: 'mark_alcohol', title: 'Registrar Álcool', description: 'Marque os dias de consumo de álcool para entender seu impacto.', actionText: 'Ver módulo', onAction: () => router.push('/(tabs)/alcohol') },
+  { id: 'pause_treatment', title: 'Pausar Tratamento', description: 'Precisa de uma pausa? Você pode suspender os lembretes aqui.', actionText: 'Saber mais', onAction: () => router.push('/(tabs)/pauses') },
 ];
 
 export function CoachmarkSystem() {
