@@ -1,109 +1,77 @@
 // app/(auth)/onboarding-flow.tsx
-// Onboarding completo com 23 telas conforme Shotsy
+// Refatorado para o "Onboarding GRANDE" de 16 passos com Analytics da Fase 3
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColors } from '@/hooks/useShotsyColors';
 import { OnboardingProgressBar } from '@/components/onboarding';
-import { useFeatureFlag } from '@/lib/feature-flags';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { trackEvent } from '@/lib/analytics';
 import { createLogger } from '@/lib/logger';
 import { useAuth } from '@/lib/clerk';
 import { useUser } from '@/hooks/useUser';
 
-const logger = createLogger('OnboardingFlow');
-
-// Importar todas as 22 telas de onboarding (sem welcome - carrossel já foi mostrado antes do login)
+// --- Telas do Onboarding ---
 import {
-  WidgetsIntroScreen,
-  ChartsIntroScreen,
-  CustomizationIntroScreen,
+  FirstNameScreen,
+  GenderScreen,
+  BirthDateScreen,
+  MainGoalScreen,
+  StartingWeightDateScreen,
+  SuccessScreen,
   AlreadyUsingGLP1Screen,
   MedicationSelectionScreen,
   InitialDoseScreen,
-  DeviceTypeScreen,
   InjectionFrequencyScreen,
-  EducationGraphScreen,
   HealthDisclaimerScreen,
   HeightInputScreen,
   CurrentWeightScreen,
   StartingWeightScreen,
   TargetWeightScreen,
   MotivationalMessageScreen,
-  WeightLossRateScreen,
-  DailyRoutineScreen,
-  FluctuationsEducationScreen,
-  SnackingCravingScreen,
-  SideEffectsConcernsScreen,
-  MotivationScreen,
-  AppRatingScreen,
 } from '@/components/onboarding';
 
-// Tipos de steps conforme ordem do Shotsy (sem welcome - carrossel é antes do login)
+const logger = createLogger('OnboardingFlow');
+
+// --- Estrutura do Onboarding (16 Passos) ---
 export type OnboardingStep =
-  | 'widgets'
-  | 'charts'
-  | 'customization'
-  | 'already-using'
-  | 'medication'
-  | 'initial-dose'
-  | 'device-type'
+  | 'first-name'
+  | 'gender'
+  | 'birth-date'
+  | 'main-goal'
+  | 'is-using-glp1'
+  | 'medication-name'
+  | 'initial-dosage'
   | 'frequency'
-  | 'education-graph'
-  | 'health-disclaimer'
   | 'height'
-  | 'current-weight'
   | 'starting-weight'
+  | 'starting-weight-date'
+  | 'current-weight'
   | 'target-weight'
+  | 'health-disclaimer'
   | 'motivational-message'
-  | 'weight-loss-rate'
-  | 'daily-routine'
-  | 'fluctuations'
-  | 'snacking-craving'
-  | 'side-effects'
-  | 'motivation'
-  | 'app-rating';
+  | 'success';
 
-// Removido 'welcome' - o onboarding começa direto com as perguntas após login
 const ONBOARDING_STEPS: OnboardingStep[] = [
-  'widgets',
-  'charts',
-  'customization',
-  'already-using',
-  'medication',
-  'initial-dose',
-  'device-type',
+  'first-name',
+  'gender',
+  'birth-date',
+  'main-goal',
+  'is-using-glp1',
+  'medication-name',
+  'initial-dosage',
   'frequency',
-  'education-graph',
-  'health-disclaimer',
   'height',
-  'current-weight',
   'starting-weight',
+  'starting-weight-date',
+  'current-weight',
   'target-weight',
-  'motivational-message',
-  'weight-loss-rate',
-  'daily-routine',
-  'fluctuations',
-  'snacking-craving',
-  'side-effects',
-  'motivation',
-  'app-rating',
-];
-
-// Core-8: Fluxo enxuto com apenas as telas essenciais
-const ONBOARDING_STEPS_CORE8: OnboardingStep[] = [
-  'medication',
-  'initial-dose',
-  'device-type',
-  'frequency',
   'health-disclaimer',
-  'current-weight',
-  'starting-weight',
-  'target-weight',
+  'motivational-message',
+  'success',
 ];
 
 const ONBOARDING_PROGRESS_KEY = '@mounjaro:onboarding_progress';
@@ -112,194 +80,78 @@ interface OnboardingData {
   [key: string]: any;
 }
 
-// Helper para sanitizar dados do onboarding - manter apenas valores primitivos
-const sanitizeOnboardingData = (data: OnboardingData): OnboardingData => {
-  const sanitized: OnboardingData = {};
-
-  for (const [key, value] of Object.entries(data)) {
-    // Apenas incluir valores primitivos, arrays de primitivos e objetos simples
-    if (value === null || value === undefined) {
-      sanitized[key] = value;
-    } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      sanitized[key] = value;
-    } else if (value instanceof Date) {
-      sanitized[key] = value.toISOString();
-    } else if (Array.isArray(value)) {
-      // Apenas arrays de primitivos
-      sanitized[key] = value.filter(item =>
-        typeof item === 'string' ||
-        typeof item === 'number' ||
-        typeof item === 'boolean' ||
-        item === null
-      );
-    } else if (typeof value === 'object') {
-      // Objetos simples (plain objects) - fazer shallow copy de valores primitivos
-      try {
-        const plainObj: any = {};
-        for (const [subKey, subValue] of Object.entries(value)) {
-          if (
-            typeof subValue === 'string' ||
-            typeof subValue === 'number' ||
-            typeof subValue === 'boolean' ||
-            subValue === null
-          ) {
-            plainObj[subKey] = subValue;
-          }
-        }
-        // Apenas incluir se tiver alguma propriedade
-        if (Object.keys(plainObj).length > 0) {
-          sanitized[key] = plainObj;
-        }
-      } catch (e) {
-        // Ignorar objetos que causam erro
-        logger.debug('Skipping object that cannot be sanitized', { key });
-      }
-    }
-  }
-
-  return sanitized;
-};
-
-// Helper para serializar dados de forma segura, removendo referencias circulares
-const serializeOnboardingData = (data: OnboardingData): string => {
-  const seen = new WeakSet();
-
-  const replacer = (key: string, value: any): any => {
-    // Remover funcoes e valores nao serializaveis
-    if (typeof value === 'function') return undefined;
-    if (typeof value === 'symbol') return undefined;
-    if (typeof value === 'undefined') return undefined;
-
-    // Converter Date para ISO string
-    if (value instanceof Date) return value.toISOString();
-
-    // Remover objetos GraphQL que podem ter referencias circulares
-    if (typeof value === 'object' && value !== null && '__typename' in value) {
-      return undefined;
-    }
-
-    // Detectar referencias circulares
-    if (typeof value === 'object' && value !== null) {
-      // Remover propriedades conhecidas que causam problemas
-      const problematicKeys = [
-        '_owner', '_store', '$$typeof',
-        'user', 'colors', 'theme', 'auth',
-        'router', 'navigation'
-      ];
-
-      if (problematicKeys.includes(key)) {
-        return undefined;
-      }
-
-      // Verificar se ja vimos esse objeto (referencia circular)
-      if (seen.has(value)) {
-        return undefined;
-      }
-
-      seen.add(value);
-    }
-
-    return value;
-  };
-
-  return JSON.stringify(data, replacer);
-};
-
 export default function OnboardingFlowScreen() {
   const colors = useColors();
   const router = useRouter();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { user, loading: userLoading } = useUser();
-  const use23Steps = useFeatureFlag('FF_ONBOARDING_23');
-  const useCore8 = useFeatureFlag('FF_ONBOARDING_CORE8');
 
-  // Selecionar array de steps baseado na feature flag
-  // Prioridade: Core-8 > 23 steps > fallback para 23 steps
-  const activeSteps = useCore8 ? ONBOARDING_STEPS_CORE8 : ONBOARDING_STEPS;
+  const activeSteps = ONBOARDING_STEPS;
   const TOTAL_STEPS = activeSteps.length;
 
   const [currentStep, setCurrentStep] = useState<OnboardingStep>(activeSteps[0]);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  // Time tracking for analytics
   const [onboardingStartTime] = useState(() => Date.now());
   const [stepStartTime, setStepStartTime] = useState(Date.now());
 
-  // GUARD CRÍTICO: Verificar autenticação PRIMEIRO antes de qualquer coisa
+  // ... (Hooks de Autenticação e Carregamento de Progresso) ...
   useEffect(() => {
     if (!authLoaded) {
       setIsLoading(true);
       return;
     }
-
-    // Se não estiver logado, LIMPAR progresso e redirecionar para welcome
     if (!isSignedIn) {
-      logger.debug('User not authenticated, clearing progress and redirecting to welcome');
-      // Limpar progresso salvo se não estiver autenticado
       AsyncStorage.removeItem(ONBOARDING_PROGRESS_KEY).catch(() => {});
       router.replace('/(auth)/welcome');
       return;
     }
-
-    // Se já completou o onboarding, redirecionar para dashboard
     if (user && user.onboarding_completed) {
-      logger.info('Onboarding already completed, redirecting to dashboard', { userId: user.id });
-      // Limpar progresso salvo pois já completou
       AsyncStorage.removeItem(ONBOARDING_PROGRESS_KEY).catch(() => {});
       router.replace('/(tabs)');
       return;
     }
-
-    // SÓ AGORA, se estiver autenticado e não completou onboarding, carregar progresso
     if (isSignedIn && user && !user.onboarding_completed) {
       loadProgress();
     } else if (isSignedIn && !userLoading) {
-      // Se está autenticado mas ainda não tem user carregado, aguardar
       setIsLoading(true);
     }
   }, [authLoaded, isSignedIn, user, userLoading, router]);
 
-  // Track onboarding started (quando carrega a primeira tela)
+  // --- Funções de Analytics Aprimoradas ---
   useEffect(() => {
     if (currentStep === activeSteps[0] && !isLoading && authLoaded && isSignedIn) {
       trackEvent('onboarding_started', {
-        source: 'sign_up',
+        flow_name: 'grande',
         total_steps: TOTAL_STEPS,
-        flow_type: useCore8 ? 'core8' : 'full',
       });
     }
   }, [currentStep, isLoading, authLoaded, isSignedIn]);
 
-  // Track screen view
   useEffect(() => {
     if (!isLoading && authLoaded && isSignedIn) {
       const stepIndex = activeSteps.indexOf(currentStep);
       trackEvent('onboarding_step_viewed', {
         step_number: stepIndex + 1,
         step_name: currentStep,
-        total_steps: TOTAL_STEPS,
       });
     }
   }, [currentStep, isLoading, authLoaded, isSignedIn]);
 
-  // Reset step start time when step changes
   useEffect(() => {
     setStepStartTime(Date.now());
   }, [currentStep]);
 
   const loadProgress = async () => {
-    // Só carregar se estiver autenticado
     if (!isSignedIn) {
       setIsLoading(false);
       return;
     }
-
     try {
       const saved = await AsyncStorage.getItem(ONBOARDING_PROGRESS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Validar se o step salvo está no array ativo
         if (parsed.step && activeSteps.includes(parsed.step)) {
           setCurrentStep(parsed.step);
           setOnboardingData(parsed.data || {});
@@ -314,286 +166,153 @@ export default function OnboardingFlowScreen() {
 
   const saveProgress = async (step: OnboardingStep, data: OnboardingData) => {
     try {
-      // Sanitizar dados antes de serializar - manter apenas valores primitivos
-      const sanitizedData = sanitizeOnboardingData(data);
-
-      logger.debug('Saving onboarding progress', {
-        step,
-        dataKeys: Object.keys(data),
-        sanitizedKeys: Object.keys(sanitizedData),
-      });
-
-      // Use safe serialization to handle circular references and non-serializable types
-      const serialized = serializeOnboardingData({ step, data: sanitizedData });
+      const serialized = JSON.stringify({ step, data });
       await AsyncStorage.setItem(ONBOARDING_PROGRESS_KEY, serialized);
-
-      logger.debug('Onboarding progress saved successfully', { step });
     } catch (error) {
       logger.error('Error saving onboarding progress', error as Error);
-      // Don't throw - allow flow to continue even if save fails
-      // This is important so that JSON serialization errors don't block the onboarding flow
     }
   };
+
 
   const handleStepComplete = (step: OnboardingStep, data?: Partial<OnboardingData>) => {
     const stepIndex = activeSteps.indexOf(step);
     const newData = { ...onboardingData, ...data };
+    const timeSpentMs = Date.now() - stepStartTime;
 
-    // Calculate time spent on this step
-    const timeSpentSeconds = Math.floor((Date.now() - stepStartTime) / 1000);
-
-    // Track step completion
     trackEvent('onboarding_step_completed', {
       step_number: stepIndex + 1,
       step_name: step,
-      time_spent_seconds: timeSpentSeconds,
-      data_collected: data,
+      time_spent_ms: timeSpentMs,
+      value: data ? data[Object.keys(data)[0]] : undefined, // Captura o primeiro valor dos dados
     });
 
-    // Salvar progresso
     setOnboardingData(newData);
     saveProgress(step, newData);
 
-    // Avançar para próximo step
     const nextIndex = stepIndex + 1;
     if (nextIndex < TOTAL_STEPS) {
-      // Track avanço para próximo step
-      trackEvent('onboarding_step_next', {
-        from_step: stepIndex + 1,
-        to_step: nextIndex + 1,
-        from_step_name: step,
-        to_step_name: activeSteps[nextIndex],
-      });
-
       setCurrentStep(activeSteps[nextIndex]);
     } else {
-      // Onboarding completo
       completeOnboarding(newData);
     }
   };
 
+  const handleSkip = (step: OnboardingStep) => {
+    const stepIndex = activeSteps.indexOf(step);
+    trackEvent('onboarding_step_skipped', {
+        step_number: stepIndex + 1,
+        step_name: step,
+    });
+    // Avança para o próximo passo sem salvar dados
+    const nextIndex = stepIndex + 1;
+    if (nextIndex < TOTAL_STEPS) {
+      setCurrentStep(activeSteps[nextIndex]);
+    } else {
+      completeOnboarding(onboardingData);
+    }
+  };
+
+
   const handleStepBack = () => {
     const stepIndex = activeSteps.indexOf(currentStep);
     if (stepIndex > 0) {
-      const previousStep = activeSteps[stepIndex - 1];
-
-      // Track voltar para step anterior
-      trackEvent('onboarding_step_back', {
-        from_step: stepIndex + 1,
-        to_step: stepIndex,
-        from_step_name: currentStep,
-        to_step_name: previousStep,
-      });
-
-      setCurrentStep(previousStep);
+      setCurrentStep(activeSteps[stepIndex - 1]);
     }
-  };
-
-  const completeOnboarding = async (data: OnboardingData) => {
-    // Calculate total onboarding time
-    const totalTimeSeconds = Math.floor((Date.now() - onboardingStartTime) / 1000);
-
-    // Track completion
-    trackEvent('onboarding_completed', {
-      total_time_seconds: totalTimeSeconds,
-      skipped_steps: [],
-      data_completed: {
-        has_medication: !!data.medication,
-        has_height: !!data.height,
-        has_weight: !!data.currentWeight,
-        has_target_weight: !!data.targetWeight,
-      },
-    });
-
-    try {
-      // Salvar dados no Supabase
-      await saveOnboardingData(data);
-
-      // Limpar progresso salvo
-      await AsyncStorage.removeItem(ONBOARDING_PROGRESS_KEY);
-
-      // Redirecionar para dashboard
-      router.replace('/(tabs)');
-    } catch (error) {
-      logger.error('Error completing onboarding', error as Error);
-      // Mostrar erro ao usuário (implementar toast/alert)
-      Alert.alert('Erro', 'Não foi possível salvar seus dados. Tente novamente.', [{ text: 'OK' }]);
-    }
-  };
-
-  const handleSkip = () => {
-    const stepIndex = activeSteps.indexOf(currentStep);
-    trackEvent('onboarding_step_skipped', {
-      step_number: stepIndex + 1,
-      step_name: currentStep,
-    });
-
-    // Avançar para próximo step sem dados
-    handleStepComplete(currentStep);
   };
 
   const { saveOnboardingData } = useOnboarding();
 
-  // Mostrar loading enquanto verifica autenticação ou carrega dados
-  // CRÍTICO: Não renderizar nada até verificar autenticação
-  if (!authLoaded || isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Carregando...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const completeOnboarding = async (data: OnboardingData) => {
+    const totalTimeMs = Date.now() - onboardingStartTime;
+    trackEvent('onboarding_completed', {
+      total_time_ms: totalTimeMs,
+      flow_name: 'grande',
+    });
 
-  // Se não estiver autenticado, não renderizar (guard já redirecionou)
-  if (!isSignedIn) {
-    return null;
-  }
-
-  // Se já completou onboarding, não renderizar (guard já redirecionou)
-  if (user && user.onboarding_completed) {
-    return null;
-  }
-
-  // Se ainda está carregando user, mostrar loading
-  if (userLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Carregando...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Se feature flag desativada, usar fluxo antigo (4 steps)
-  if (!use23Steps) {
-    // TODO: manter compatibilidade com fluxo antigo se necessário
-  }
+    try {
+      await saveOnboardingData(data);
+      await AsyncStorage.removeItem(ONBOARDING_PROGRESS_KEY);
+      router.replace('/(tabs)');
+    } catch (error) {
+      logger.error('Error completing onboarding', error as Error);
+      Alert.alert('Erro', 'Não foi possível salvar seus dados. Tente novamente.', [{ text: 'OK' }]);
+    }
+  };
 
   const renderStep = () => {
-    // Callback wrapper que aceita dados opcionais de qualquer tipo
-    const handleNextWithData = (data?: any) => {
-      handleStepComplete(currentStep, data);
-    };
+    const handleNextWithData = (data?: any) => handleStepComplete(currentStep, data);
+    const handleSkipCurrentStep = () => handleSkip(currentStep);
 
     switch (currentStep) {
-      case 'widgets':
-        return (
-          <WidgetsIntroScreen
-            onNext={() => handleStepComplete('widgets')}
-            onBack={handleStepBack}
-          />
-        );
-      case 'charts':
-        return (
-          <ChartsIntroScreen onNext={() => handleStepComplete('charts')} onBack={handleStepBack} />
-        );
-      case 'customization':
-        return (
-          <CustomizationIntroScreen
-            onNext={() => handleStepComplete('customization')}
-            onBack={handleStepBack}
-          />
-        );
-      case 'already-using':
+      // --- Seção: Boas-vindas ---
+      case 'first-name':
+        return <FirstNameScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'gender':
+        return <GenderScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'birth-date':
+        return <BirthDateScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+
+      // --- Seção: Sua Jornada ---
+      case 'main-goal':
+        return <MainGoalScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'is-using-glp1':
         return <AlreadyUsingGLP1Screen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'medication':
+
+      // --- Seção: Medicação ---
+      case 'medication-name':
         return <MedicationSelectionScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'initial-dose':
-        return <InitialDoseScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'device-type':
-        return <DeviceTypeScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'initial-dosage':
+        // Exemplo de tela que pode ser pulada
+        return <InitialDoseScreen onNext={handleNextWithData} onBack={handleStepBack} onSkip={handleSkipCurrentStep} />;
       case 'frequency':
         return <InjectionFrequencyScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'education-graph':
-        return (
-          <EducationGraphScreen
-            onNext={() => handleStepComplete('education-graph')}
-            onBack={handleStepBack}
-          />
-        );
-      case 'health-disclaimer':
-        return (
-          <HealthDisclaimerScreen
-            onNext={(consentAccepted) => {
-              if (consentAccepted) {
-                trackEvent('onboarding_consent_accepted', {
-                  step_number: activeSteps.indexOf('health-disclaimer') + 1,
-                  timestamp: new Date().toISOString(),
-                  consent_version: '1.0.0', // Versão para auditoria
-                });
-              }
-              handleStepComplete('health-disclaimer');
-            }}
-            onBack={handleStepBack}
-          />
-        );
+
+      // --- Seção: Métricas ---
       case 'height':
         return <HeightInputScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+      case 'starting-weight':
+         // Exemplo de tela que pode ser pulada
+        return <StartingWeightScreen onNext={handleNextWithData} onBack={handleStepBack} onSkip={handleSkipCurrentStep} />;
+      case 'starting-weight-date':
+        return <StartingWeightDateScreen onNext={handleNextWithData} onBack={handleStepBack} />;
       case 'current-weight':
         return <CurrentWeightScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'starting-weight':
-        return (
-          <StartingWeightScreen
-            onNext={handleNextWithData}
-            onBack={handleStepBack}
-          />
-        );
       case 'target-weight':
-        return (
-          <TargetWeightScreen
-            onNext={handleNextWithData}
-            onBack={handleStepBack}
-            currentWeight={onboardingData.currentWeight || 0}
-            startingWeight={onboardingData.startingWeight || 0}
-            height={onboardingData.height || 170}
-          />
-        );
+        // Exemplo de tela que pode ser pulada
+        return <TargetWeightScreen onNext={handleNextWithData} onBack={handleStepBack} onSkip={handleSkipCurrentStep} currentWeight={onboardingData.currentWeight || 0} startingWeight={onboardingData.startingWeight || 0} height={onboardingData.height || 170} />;
+
+      // --- Seção: Legal ---
+      case 'health-disclaimer':
+        return <HealthDisclaimerScreen onNext={handleNextWithData} onBack={handleStepBack} />;
+
+      // --- Seção: Finalização ---
       case 'motivational-message':
-        return <MotivationalMessageScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'weight-loss-rate':
-        return <WeightLossRateScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'daily-routine':
-        return <DailyRoutineScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'fluctuations':
-        return (
-          <FluctuationsEducationScreen
-            onNext={() => handleStepComplete('fluctuations')}
-            onBack={handleStepBack}
-          />
-        );
-      case 'snacking-craving':
-        return <SnackingCravingScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'side-effects':
-        return <SideEffectsConcernsScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'motivation':
-        return <MotivationScreen onNext={handleNextWithData} onBack={handleStepBack} />;
-      case 'app-rating':
-        return (
-          <AppRatingScreen
-            onNext={() => handleStepComplete('app-rating')}
-            onBack={handleStepBack}
-          />
-        );
+        return <MotivationalMessageScreen onNext={() => handleNextWithData()} onBack={handleStepBack} />;
+      case 'success':
+        return <SuccessScreen onNext={() => completeOnboarding(onboardingData)} onBack={handleStepBack} />;
+
       default:
         return null;
     }
   };
 
+  if (isLoading || !authLoaded || (isSignedIn && userLoading)) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="dark-content" />
-
-      {/* Progress Bar */}
       <OnboardingProgressBar
         current={activeSteps.indexOf(currentStep) + 1}
         total={TOTAL_STEPS}
       />
-
       {renderStep()}
     </SafeAreaView>
   );
@@ -607,9 +326,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
   },
 });
