@@ -38,7 +38,7 @@ export default function AddMedicationScreen() {
 
   const [type, setType] = useState<MedicationType>('mounjaro');
   const [dosage, setDosage] = useState('');
-  const [frequency, setFrequency] = useState<'weekly' | 'daily'>('weekly');
+  const [frequency] = useState<'weekly'>('weekly'); // GLP-1 medications are ONLY weekly
   const [loading, setLoading] = useState(false);
 
   // Load medication data for editing
@@ -183,53 +183,23 @@ export default function AddMedicationScreen() {
             </View>
           </View>
 
-          {/* FREQUÊNCIA */}
+          {/* FREQUÊNCIA - GLP-1 medications are ONLY weekly */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
               FREQUÊNCIA DE APLICAÇÃO
             </Text>
-            <View style={styles.frequencyRow}>
-              <TouchableOpacity
-                style={[
-                  styles.frequencyCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                  frequency === 'weekly' && { borderColor: colors.primary, borderWidth: 2 },
-                ]}
-                onPress={() => {
-                  setFrequency('weekly');
-                  Haptics.selectionAsync();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.frequencyText,
-                    { color: frequency === 'weekly' ? colors.primary : colors.text },
-                  ]}
-                >
-                  Semanal
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.frequencyCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                  frequency === 'daily' && { borderColor: colors.primary, borderWidth: 2 },
-                ]}
-                onPress={() => {
-                  setFrequency('daily');
-                  Haptics.selectionAsync();
-                }}
-              >
-                <Text
-                  style={[
-                    styles.frequencyText,
-                    { color: frequency === 'daily' ? colors.primary : colors.text },
-                  ]}
-                >
-                  Diária
-                </Text>
-              </TouchableOpacity>
+            <View
+              style={[
+                styles.frequencyInfoCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.frequencyInfoText, { color: colors.text }]}>
+                Semanal
+              </Text>
+              <Text style={[styles.frequencyInfoSubtext, { color: colors.textSecondary }]}>
+                Medicamentos GLP-1 são aplicados semanalmente
+              </Text>
             </View>
           </View>
 
@@ -324,22 +294,23 @@ const getStyles = (colors: any) =>
       fontWeight: '600',
       marginLeft: 8,
     },
-    frequencyRow: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    frequencyCard: {
-      flex: 1,
+    frequencyInfoCard: {
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: 56,
-      paddingVertical: 16,
+      paddingVertical: 20,
+      paddingHorizontal: 16,
       borderRadius: 12,
-      borderWidth: 1,
+      borderWidth: 2,
+      borderColor: colors.primary,
     },
-    frequencyText: {
-      fontSize: 16,
-      fontWeight: '500',
+    frequencyInfoText: {
+      fontSize: 18,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    frequencyInfoSubtext: {
+      fontSize: 14,
+      textAlign: 'center',
     },
     loadingText: {
       fontSize: 14,
