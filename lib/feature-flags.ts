@@ -12,7 +12,6 @@ const FEATURE_FLAGS_KEY = '@mounjaro:feature_flags';
 export interface FeatureFlags {
   FF_PAYWALL: boolean;
   FF_FAQ: boolean;
-  FF_ONBOARDING_23: boolean;
   FF_ONBOARDING_CORE8: boolean;
   FF_ONBOARDING_5_CORE: boolean;
   FF_TRIAL: boolean;
@@ -24,9 +23,8 @@ export interface FeatureFlags {
 const DEFAULT_FLAGS: FeatureFlags = {
   FF_PAYWALL: false, // Ativar após implementação completa
   FF_FAQ: false, // Ativar após implementação completa
-  FF_ONBOARDING_23: true, // ✅ ATIVADO para teste da jornada completa
   FF_ONBOARDING_CORE8: false, // Core-8 flow (8 steps essenciais) - ativar quando pronto
-  FF_ONBOARDING_5_CORE: true, // ✅ ATIVADO para teste - Onboarding 5 telas core (C1)
+  FF_ONBOARDING_5_CORE: true, // ✅ ATIVADO - Onboarding 5 telas core (C1)
   FF_TRIAL: false, // Ativar após implementação completa
   FF_MARKETING_CAROUSEL_SHOTSY: true, // Carrossel Shotsy com 4 imagens
   FF_FINANCE_MVP: true, // ✅ ATIVADO - Módulo financeiro (C4)

@@ -5,10 +5,15 @@ import { useColors } from '@/hooks/useShotsyColors';
 import { EstimatedLevelsChartV2 } from '@/components/dashboard/EstimatedLevelsChartV2';
 import { NextShotWidget } from '@/components/dashboard/NextShotWidget';
 import { ShotsyCircularProgressV2, ProgressValue } from '@/components/ui/ShotsyCircularProgressV2';
+import { WeightChart } from '@/components/dashboard/WeightChart';
+import { FinancialSummaryCard } from '@/components/finance/FinancialSummaryCard';
 import { router } from 'expo-router';
 import { useApplications } from '@/hooks/useApplications';
 import { useWeights } from '@/hooks/useWeights';
 import { useProfile } from '@/hooks/useProfile';
+import { usePurchases } from '@/hooks/usePurchases';
+import { useFeatureFlag } from '@/lib/feature-flags';
+import { calculateTotalSpent, calculateWeeklySpent, calculateCostPerKg } from '@/lib/finance';
 import { calculateNextShotDate, getCurrentEstimatedLevel, MedicationApplication } from '@/lib/pharmacokinetics';
 import { createLogger } from '@/lib/logger';
 import { List, Plus } from 'phosphor-react-native';
@@ -37,6 +42,8 @@ function DashboardContent() {
   } = useApplications();
   const { weights, loading: weightsLoading } = useWeights();
   const { profile, loading: profileLoading } = useProfile();
+  const { purchases, loading: purchasesLoading } = usePurchases();
+  const financeEnabled = useFeatureFlag('FF_FINANCE_MVP');
 
   const isLoading = applicationsLoading || weightsLoading || profileLoading;
 
@@ -121,6 +128,27 @@ function DashboardContent() {
 
     return getCurrentEstimatedLevel(medicationApps);
   }, [applications]);
+
+  // Calculate financial metrics
+  const financialMetrics = useMemo(() => {
+    if (!financeEnabled || purchases.length === 0) {
+      return null;
+    }
+
+    const totalSpent = calculateTotalSpent(purchases);
+    const weeklySpent = calculateWeeklySpent(purchases);
+    const costPerKg = weights.length >= 2 && profile?.costPerKgOptIn
+      ? calculateCostPerKg(purchases, weights)
+      : null;
+
+    return {
+      totalSpentCents: totalSpent,
+      weeklySpentCents: weeklySpent,
+      costPerKgCents: costPerKg,
+      nextPurchaseDate: null, // TODO: Calculate based on purchase frequency
+      hasOptIn: profile?.costPerKgOptIn || false,
+    };
+  }, [purchases, weights, profile, financeEnabled]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -270,6 +298,18 @@ function DashboardContent() {
           <EstimatedLevelsChartV2 />
         </FadeInView>
 
+        {/* Weight Evolution Chart */}
+        {weights.length > 0 && (
+          <FadeInView duration={800} delay={250} style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Evolução do Peso</Text>
+            <WeightChart
+              data={weights}
+              goalWeight={profile?.target_weight}
+              initialWeight={profile?.start_weight}
+            />
+          </FadeInView>
+        )}
+
         {/* Next Injection */}
         <FadeInView duration={800} delay={300} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Next Injection</Text>
@@ -280,6 +320,23 @@ function DashboardContent() {
             frequency={frequency}
           />
         </FadeInView>
+
+        {/* Financial Summary */}
+        {financeEnabled && financialMetrics && (
+          <FadeInView duration={800} delay={350} style={styles.section}>
+            <FinancialSummaryCard
+              totalSpentCents={financialMetrics.totalSpentCents}
+              weeklySpentCents={financialMetrics.weeklySpentCents}
+              nextPurchaseDate={financialMetrics.nextPurchaseDate}
+              costPerKgCents={financialMetrics.costPerKgCents}
+              hasOptIn={financialMetrics.hasOptIn}
+              onOptInPress={() => {
+                // TODO: Open opt-in modal or navigate to settings
+                logger.info('Cost per kg opt-in pressed');
+              }}
+            />
+          </FadeInView>
+        )}
 
         {/* Quick Actions Card */}
         <FadeInView duration={800} delay={400} style={styles.section}>

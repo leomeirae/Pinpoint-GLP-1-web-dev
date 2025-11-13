@@ -60,7 +60,6 @@ export default function OnboardingLayout() {
         <Stack.Screen name="MedicationDose" options={{ title: 'Medicamento' }} />
         <Stack.Screen name="Schedule" options={{ title: 'Agendamento' }} />
         <Stack.Screen name="Permissions" options={{ title: 'Permissões' }} />
-        <Stack.Screen name="FeatureHook" options={{ title: 'Recursos' }} />
       </Stack>
     </OnboardingProvider>
   );
