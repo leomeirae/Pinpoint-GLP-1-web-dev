@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createLogger } from '@/lib/logger';
-import { useAuth } from '@clerk/clerk-expo';
+import { useUser } from '@/hooks/useUser';
 import { pauseWeeklyReminders, resumeWeeklyReminders } from '@/lib/notifications';
 
 const logger = createLogger('useTreatmentPauses');
@@ -33,7 +33,8 @@ export interface UpdatePause {
 }
 
 export function useTreatmentPauses() {
-  const { userId } = useAuth();
+  const { user } = useUser();
+  const userId = user?.id; // Supabase UUID, não Clerk ID
   const [pauses, setPauses] = useState<TreatmentPause[]>([]);
   const [activePause, setActivePause] = useState<TreatmentPause | null>(null);
   const [loading, setLoading] = useState(true);

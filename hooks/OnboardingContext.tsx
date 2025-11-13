@@ -60,7 +60,21 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   // Carregar dados salvos ao montar
   useEffect(() => {
-    loadData();
+    // Em desenvolvimento, sempre resetar para testar do zero
+    // Remove esta linha quando for para produção ou teste de "retomar onboarding"
+    const initOnboarding = async () => {
+      if (__DEV__) {
+        // Force reset em dev para sempre começar do step 1
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        setState(defaultState);
+        logger.info('Onboarding reset (dev mode)');
+      } else {
+        // Em produção, carrega dados salvos para permitir retomar
+        loadData();
+      }
+    };
+
+    initOnboarding();
   }, []);
 
   // Salvar dados automaticamente quando state mudar

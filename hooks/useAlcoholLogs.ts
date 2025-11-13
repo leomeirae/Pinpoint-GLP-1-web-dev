@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createLogger } from '@/lib/logger';
-import { useAuth } from '@clerk/clerk-expo';
+import { useUser } from '@/hooks/useUser';
 
 const logger = createLogger('useAlcoholLogs');
 
@@ -33,7 +33,8 @@ export interface UpdateAlcoholLog {
 }
 
 export function useAlcoholLogs(startDate?: string, endDate?: string) {
-  const { userId } = useAuth();
+  const { user } = useUser();
+  const userId = user?.id; // Supabase UUID, não Clerk ID
   const [logs, setLogs] = useState<AlcoholLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

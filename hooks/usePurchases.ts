@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { createLogger } from '@/lib/logger';
-import { useAuth } from '@clerk/clerk-expo';
+import { useUser } from '@/hooks/useUser';
 import type { Purchase } from '@/lib/finance';
 
 const logger = createLogger('usePurchases');
@@ -43,7 +43,8 @@ export interface UpdatePurchase {
 }
 
 export function usePurchases() {
-  const { userId } = useAuth();
+  const { user } = useUser();
+  const userId = user?.id; // Supabase UUID, não Clerk ID
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
