@@ -154,7 +154,7 @@ export async function performAccountDeletion(
     // Step 1: Delete user record from Supabase
     // CASCADE will automatically delete all related data from:
     // - weight_logs, medication_applications, side_effects
-    // - daily_nutrition, daily_streaks, achievements
+    // - daily_streaks, achievements
     // - scheduled_notifications, subscriptions, settings, medications
     const { error: dbError } = await supabase.from('users').delete().eq('id', userId);
 

@@ -33,6 +33,7 @@ import {
   Warning,
   List,
   Gear,
+  ShieldCheck,
 } from 'phosphor-react-native';
 
 const logger = createLogger('Settings');
@@ -238,6 +239,12 @@ export default function SettingsScreen() {
 
   // Shotsy Design: Data items
   const dataItems: SettingsItem[] = [
+    {
+      icon: <ShieldCheck size={20} color={colors.accentPurple || '#a855f7'} weight="bold" />,
+      label: 'Consentimentos & Privacidade',
+      color: colors.accentPurple || '#a855f7',
+      onPress: () => router.push('/(tabs)/settings/privacy' as any),
+    },
     {
       icon: <Heart size={20} color={colors.accentRed || '#ef4444'} weight="bold" />,
       label: 'Dados do Apple Saúde',

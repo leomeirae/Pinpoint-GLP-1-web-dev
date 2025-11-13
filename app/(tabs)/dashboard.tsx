@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ScrollView, View, StyleSheet, RefreshControl, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useShotsyColors';
@@ -15,12 +15,19 @@ import { List, Plus } from 'phosphor-react-native';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import { getDosageColor } from '@/lib/dosageColors';
 import { FadeInView, ScalePress } from '@/components/animations';
+import { CoachmarkProvider, Coachmark, CoachmarkController, useCoachmarks } from '@/components/coachmarks';
+import { QuickActionsCard } from '@/components/dashboard/QuickActionsCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const logger = createLogger('Dashboard');
 
-export default function DashboardScreen() {
+const DASHBOARD_FIRST_VISIT_KEY = '@mounjaro:dashboard_first_visit';
+
+// Componente interno que usa coachmarks
+function DashboardContent() {
   const colors = useColors();
   const [refreshing, setRefreshing] = useState(false);
+  const { startTour } = useCoachmarks();
 
   // Fetch real data from Supabase
   const {
@@ -32,6 +39,26 @@ export default function DashboardScreen() {
   const { profile, loading: profileLoading } = useProfile();
 
   const isLoading = applicationsLoading || weightsLoading || profileLoading;
+
+  // Iniciar tour na primeira visita ao dashboard
+  useEffect(() => {
+    checkFirstVisitAndStartTour();
+  }, []);
+
+  const checkFirstVisitAndStartTour = async () => {
+    try {
+      const visited = await AsyncStorage.getItem(DASHBOARD_FIRST_VISIT_KEY);
+      if (!visited && !isLoading) {
+        // Aguardar um pouco para garantir que elementos estão renderizados
+        setTimeout(() => {
+          startTour();
+          AsyncStorage.setItem(DASHBOARD_FIRST_VISIT_KEY, 'true');
+        }, 1000);
+      }
+    } catch (error) {
+      logger.error('Error checking first visit', error as Error);
+    }
+  };
 
   // Calculate real metrics from Supabase data
   const totalShots = applications.length;
@@ -118,10 +145,17 @@ export default function DashboardScreen() {
           <List size={24} color={colors.text} weight="regular" />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Summary</Text>
-        <ScalePress onPress={handleAddShot} style={styles.addButton} hapticType="medium">
-          <Plus size={20} color={colors.primary} weight="bold" />
-          <Text style={[styles.addButtonText, { color: colors.primary }]}>Add shot</Text>
-        </ScalePress>
+        <Coachmark
+          id="home_add_dose"
+          title="Registrar Dose"
+          description="Registre suas aplicações semanais aqui para acompanhar seu tratamento"
+          order={1}
+        >
+          <ScalePress onPress={handleAddShot} style={styles.addButton} hapticType="medium">
+            <Plus size={20} color={colors.primary} weight="bold" />
+            <Text style={[styles.addButtonText, { color: colors.primary }]}>Add shot</Text>
+          </ScalePress>
+        </Coachmark>
       </View>
 
       <ScrollView
@@ -246,8 +280,32 @@ export default function DashboardScreen() {
             frequency={frequency}
           />
         </FadeInView>
+
+        {/* Quick Actions Card */}
+        <FadeInView duration={800} delay={400} style={styles.section}>
+          <Coachmark
+            id="home_quick_actions"
+            title="Ações Rápidas"
+            description="Acesso rápido às ações mais usadas do app"
+            order={2}
+          >
+            <QuickActionsCard />
+          </Coachmark>
+        </FadeInView>
       </ScrollView>
+
+      {/* Coachmark Controller */}
+      <CoachmarkController />
     </SafeAreaView>
+  );
+}
+
+// Wrapper com Provider
+export default function DashboardScreen() {
+  return (
+    <CoachmarkProvider>
+      <DashboardContent />
+    </CoachmarkProvider>
   );
 }
 

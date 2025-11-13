@@ -20,9 +20,10 @@ module.exports = {
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
     'plugin:react-native/all',
+    'plugin:jsx-a11y/recommended',
     'plugin:prettier/recommended',
   ],
-  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native', 'prettier'],
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native', 'jsx-a11y', 'prettier'],
   rules: {
     // TypeScript specific rules
     '@typescript-eslint/no-unused-vars': [
@@ -59,6 +60,15 @@ module.exports = {
 
     // Prettier integration
     'prettier/prettier': ['warn', {}, { usePrettierrc: true }],
+
+    // Accessibility rules (jsx-a11y)
+    'jsx-a11y/accessible-emoji': 'error',
+    'jsx-a11y/alt-text': 'error',
+    'jsx-a11y/anchor-has-content': 'error',
+    'jsx-a11y/label-has-associated-control': 'error',
+    'jsx-a11y/no-autofocus': 'warn',
+    'jsx-a11y/no-static-element-interactions': 'warn',
+    'jsx-a11y/click-events-have-key-events': 'warn',
   },
   settings: {
     react: {

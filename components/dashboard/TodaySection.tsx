@@ -26,11 +26,11 @@ export function TodaySection({
   };
 
   const handleCaloriesPress = () => {
-    router.push('/(tabs)/add-nutrition');
+    // Feature removida - IA de nutrição não está mais disponível
   };
 
   const handleProteinPress = () => {
-    router.push('/(tabs)/add-nutrition');
+    // Feature removida - IA de nutrição não está mais disponível
   };
 
   const handleSideEffectsPress = () => {

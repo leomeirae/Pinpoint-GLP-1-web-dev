@@ -7,6 +7,7 @@ import { useUser } from '@/hooks/useUser';
 import { useUserSync } from '@/hooks/useUserSync';
 import { createLogger } from '@/lib/logger';
 import { trackEvent } from '@/lib/analytics';
+import { useFeatureFlag } from '@/lib/feature-flags';
 
 const logger = createLogger('IndexScreen');
 
@@ -21,6 +22,12 @@ export default function IndexScreen() {
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
   const [waitTime, setWaitTime] = useState(0);
+  const useOnboarding5Core = useFeatureFlag('FF_ONBOARDING_5_CORE');
+  
+  // Debug: Log da feature flag
+  useEffect(() => {
+    logger.info('🚩 Feature Flag Status', { useOnboarding5Core });
+  }, [useOnboarding5Core]);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -34,11 +41,16 @@ export default function IndexScreen() {
       return;
     }
 
-    // Se não estiver autenticado, ir para welcome
+    // Se não estiver autenticado, ir para welcome ou novo onboarding
     if (!isSignedIn) {
-      logger.info('User not signed in, redirecting to welcome');
+      logger.info('User not signed in, redirecting to welcome', { useOnboarding5Core });
       hasRedirectedRef.current = true;
-      router.replace('/(auth)/welcome');
+      // Se feature flag ativada, ir direto para novo onboarding
+      if (useOnboarding5Core) {
+        router.replace('/(onboarding)/Welcome');
+      } else {
+        router.replace('/(auth)/welcome');
+      }
       setTimeout(() => {
         hasRedirectedRef.current = false;
       }, 500);
@@ -60,7 +72,12 @@ export default function IndexScreen() {
         waitTime
       });
       hasRedirectedRef.current = true;
-      router.replace('/(auth)/onboarding-flow');
+      const useOnboarding5Core = useFeatureFlag('FF_ONBOARDING_5_CORE');
+      if (useOnboarding5Core) {
+        router.replace('/(onboarding)/Welcome');
+      } else {
+        router.replace('/(auth)/onboarding-flow');
+      }
       setTimeout(() => {
         hasRedirectedRef.current = false;
       }, 500);
@@ -85,7 +102,12 @@ export default function IndexScreen() {
         note: 'This usually means Supabase query failed or user does not exist yet'
       });
       hasRedirectedRef.current = true;
-      router.replace('/(auth)/onboarding-flow');
+      const useOnboarding5Core = useFeatureFlag('FF_ONBOARDING_5_CORE');
+      if (useOnboarding5Core) {
+        router.replace('/(onboarding)/Welcome');
+      } else {
+        router.replace('/(auth)/onboarding-flow');
+      }
       setTimeout(() => {
         hasRedirectedRef.current = false;
       }, 500);
@@ -129,6 +151,7 @@ export default function IndexScreen() {
           logger.info('🚀 Redirecting to onboarding flow', {
             reason: user.onboarding_completed === false ? 'flag is false' : 'flag is missing/undefined',
             onboarding_completed: user.onboarding_completed,
+            useOnboarding5Core,
           });
           trackEvent('auth_guard_evaluation', {
             user_id: user.id,
@@ -136,7 +159,12 @@ export default function IndexScreen() {
             onboarding_completed: false,
             onboarding_field_exists: 'onboarding_completed' in user,
           });
-          router.replace('/(auth)/onboarding-flow');
+          // Usar novo onboarding 5 core se feature flag estiver ativa
+          if (useOnboarding5Core) {
+            router.replace('/(onboarding)/Welcome');
+          } else {
+            router.replace('/(auth)/onboarding-flow');
+          }
         } else {
           logger.info('✅ Redirecting to dashboard', {
             onboarding_completed: user.onboarding_completed,

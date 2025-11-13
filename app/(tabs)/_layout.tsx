@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import { ClipboardText, Syringe, ChartLineUp, Calendar, GearSix, Sparkle } from 'phosphor-react-native';
+import { ClipboardText, Syringe, ChartLineUp, Calendar, CurrencyCircleDollar, GearSix } from 'phosphor-react-native';
 import { useColors } from '@/hooks/useShotsyColors';
 import { useAuth } from '@/lib/clerk';
+import { useFeatureFlag } from '@/lib/feature-flags';
 import { createLogger } from '@/lib/logger';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 
@@ -14,6 +15,7 @@ export default function Layout() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const hasRedirectedRef = useRef(false);
+  const financeEnabled = useFeatureFlag('FF_FINANCE_MVP');
 
   // Auth Guard: Redireciona para welcome se não estiver autenticado
   useEffect(() => {
@@ -120,11 +122,12 @@ export default function Layout() {
         }}
       />
       <Tabs.Screen
-        name="add-nutrition"
+        name="finance"
         options={{
-          title: 'IA',
+          title: 'Custos',
+          href: financeEnabled ? undefined : null,
           tabBarIcon: ({ color, focused }) => (
-            <Sparkle
+            <CurrencyCircleDollar
               size={ShotsyDesignTokens.iconSize.xl}
               color={color}
               weight={focused ? 'bold' : 'thin'}
@@ -152,10 +155,12 @@ export default function Layout() {
       <Tabs.Screen name="add-side-effect" options={{ href: null }} />
       <Tabs.Screen name="add-weight" options={{ href: null }} />
       <Tabs.Screen name="notification-settings" options={{ href: null }} />
+      <Tabs.Screen name="edit-reminder" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="faq" options={{ href: null }} />
       <Tabs.Screen name="premium" options={{ href: null }} />
-      {/* Removido add-nutrition daqui pois agora está no tab bar */}
+      <Tabs.Screen name="treatment" options={{ href: null }} />
+      <Tabs.Screen name="habits" options={{ href: null }} />
     </Tabs>
   );
 }

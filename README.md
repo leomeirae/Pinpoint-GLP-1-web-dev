@@ -1,5 +1,7 @@
 # Pinpoint GLP-1
 
+![LGPD Compliant](https://img.shields.io/badge/LGPD-Compliant-green) ![React Native](https://img.shields.io/badge/React%20Native-0.81.5-blue) ![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
+
 **Aplicativo para acompanhamento de medicamentos GLP-1 (Mounjaro, Ozempic, Saxenda, Wegovy)**
 
 ---
@@ -10,14 +12,19 @@ O Pinpoint GLP-1 é um aplicativo React Native desenvolvido com Expo que ajuda u
 
 ### Funcionalidades Principais
 
-- 📊 **Dashboard Completo** - Visão geral do progresso e próximas aplicações
-- 💉 **Registro de Aplicações** - Controle de doses, locais e horários
+- 📊 **Dashboard Completo** - Visão geral do progresso e Quick Actions para ações rápidas
+- 💉 **Registro de Aplicações** - Controle de doses semanais com lembretes inteligentes
 - 📈 **Gráficos de Progresso** - Acompanhamento de peso e níveis estimados de medicação
 - 📅 **Calendário** - Visualização temporal das aplicações e marcos
-- ⚙️ **Configurações Personalizáveis** - Temas, notificações e preferências
-- 🤖 **IA Nutricional** - Chat inteligente para análise nutricional diária
-- 🎨 **Temas Personalizados** - 8 temas visuais diferentes
-- 📱 **Onboarding Completo** - 23 telas de configuração inicial
+- 💰 **Controle Financeiro** - Rastreamento de gastos com medicação (R$/total, R$/semana, R$/kg)
+- ⏸️ **Gestão de Pausas** - Controle de pausas no tratamento com desligamento automático de lembretes
+- 🍷 **Tracking de Álcool** - Registro de consumo com overlays discretos em gráficos
+- 🔔 **Notificações Semanais** - Lembretes confiáveis com janela de aplicação configurável
+- 🎓 **Coachmarks** - Sistema de onboarding in-app para guiar usuários
+- ⚙️ **Configurações Personalizáveis** - Temas, notificações, privacidade e preferências
+- 🎨 **Temas Personalizados** - 8 temas visuais diferentes + Dark Mode automático
+- 📱 **Onboarding Essencial** - 5 telas core focadas no essencial
+- 🔒 **Privacidade e Compliance** - LGPD/GDPR compliant com opt-in obrigatório para analytics
 
 ---
 
@@ -28,7 +35,6 @@ O Pinpoint GLP-1 é um aplicativo React Native desenvolvido com Expo que ajuda u
 - **Autenticação:** Clerk
 - **Database:** Supabase
 - **Estilo:** StyleSheet nativo do React Native
-- **IA:** Google Gemini API
 - **Analytics:** Sistema próprio com tracking de eventos
 
 ---
@@ -64,7 +70,6 @@ O Pinpoint GLP-1 é um aplicativo React Native desenvolvido com Expo que ajuda u
 - Expo CLI
 - Conta Supabase
 - Conta Clerk
-- API Key do Google Gemini
 
 ### Instalação
 
@@ -88,7 +93,6 @@ npx expo start
 
 1. **Supabase:** Configure as tabelas usando os scripts em `supabase/migrations/`
 2. **Clerk:** Configure autenticação e webhooks
-3. **Gemini:** Adicione sua API key para funcionalidades de IA
 
 ---
 

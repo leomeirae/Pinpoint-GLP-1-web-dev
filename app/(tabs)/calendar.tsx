@@ -9,12 +9,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Syringe, Scales, TrendUp, Flame, ForkKnife, Drop, Note, CalendarBlank } from 'phosphor-react-native';
+import { Syringe, Scales, TrendUp, Drop, Note, CalendarBlank } from 'phosphor-react-native';
 import { useColors } from '@/hooks/useShotsyColors';
 import { MonthCalendar } from '@/components/calendar/MonthCalendar';
 import { useApplications } from '@/hooks/useApplications';
 import { useWeights } from '@/hooks/useWeights';
-import { useNutrition } from '@/hooks/useNutrition';
 import { useSideEffects } from '@/hooks/useSideEffects';
 import { getCurrentEstimatedLevel, MedicationApplication } from '@/lib/pharmacokinetics';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
@@ -53,12 +52,6 @@ export default function CalendarViewScreen() {
     refetch: refetchWeights,
   } = useWeights();
   const {
-    nutrition,
-    loading: loadingNutrition,
-    getNutritionByDate,
-    refetch: refetchNutrition,
-  } = useNutrition();
-  const {
     sideEffects,
     loading: loadingSideEffects,
     refetch: refetchSideEffects,
@@ -88,7 +81,6 @@ export default function CalendarViewScreen() {
 
   // Get data for selected date
   const selectedDateData = useMemo(() => {
-    const selectedDateStr = selectedDate.toISOString().split('T')[0];
     const selectedDateOnly = new Date(selectedDate);
     selectedDateOnly.setHours(0, 0, 0, 0);
 
@@ -106,12 +98,6 @@ export default function CalendarViewScreen() {
       return wDate.getTime() === selectedDateOnly.getTime();
     });
 
-    // Get nutrition for selected date
-    const nutritionData = nutrition.find((n) => {
-      const nDate = new Date(n.date);
-      nDate.setHours(0, 0, 0, 0);
-      return nDate.getTime() === selectedDateOnly.getTime();
-    });
 
     // Get side effects for selected date
     const daySideEffects = sideEffects.filter((se) => {
@@ -135,11 +121,10 @@ export default function CalendarViewScreen() {
     return {
       injection,
       weight,
-      nutrition: nutritionData,
       sideEffects: daySideEffects,
       estimatedLevel,
     };
-  }, [selectedDate, applications, weights, nutrition, sideEffects]);
+  }, [selectedDate, applications, weights, sideEffects]);
 
   // Generate days for horizontal scroll (current week)
   const weekDays = useMemo(() => {
@@ -162,7 +147,6 @@ export default function CalendarViewScreen() {
       await Promise.all([
         refetchApplications(),
         refetchWeights(),
-        refetchNutrition(),
         refetchSideEffects(),
       ]);
     } catch (error) {
@@ -208,7 +192,7 @@ export default function CalendarViewScreen() {
     return selected.getTime() === checkDate.getTime();
   };
 
-  const isLoading = loadingApplications || loadingWeights || loadingNutrition || loadingSideEffects;
+  const isLoading = loadingApplications || loadingWeights || loadingSideEffects;
 
   // Get dosage color for injection indicator
   const injectionColor = selectedDateData.injection
@@ -386,52 +370,6 @@ export default function CalendarViewScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Calories Card */}
-            <View
-              style={[
-                styles.statCard,
-                { backgroundColor: colors.card },
-                ShotsyDesignTokens.shadows.card,
-              ]}
-            >
-              <View style={styles.statHeader}>
-                <Flame size={20} color="#F97316" weight="bold" />
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Calories</Text>
-              </View>
-              {selectedDateData.nutrition?.calories ? (
-                <View style={styles.statContent}>
-                  <Text style={[styles.statValue, { color: colors.text }]}>
-                    {selectedDateData.nutrition.calories}
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>—</Text>
-              )}
-            </View>
-
-            {/* Protein Card */}
-            <View
-              style={[
-                styles.statCard,
-                { backgroundColor: colors.card },
-                ShotsyDesignTokens.shadows.card,
-              ]}
-            >
-              <View style={styles.statHeader}>
-                <ForkKnife size={20} color="#EF4444" weight="bold" />
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Protein</Text>
-              </View>
-              {selectedDateData.nutrition?.protein ? (
-                <View style={styles.statContent}>
-                  <Text style={[styles.statValue, { color: colors.text }]}>
-                    {selectedDateData.nutrition.protein}
-                    <Text style={[styles.statUnit, { color: colors.textSecondary }]}>g</Text>
-                  </Text>
-                </View>
-              ) : (
-                <Text style={[styles.statPlaceholder, { color: colors.textMuted }]}>—</Text>
-              )}
-            </View>
           </View>
 
           {/* Side Effects Card - Shotsy Style */}
@@ -472,15 +410,9 @@ export default function CalendarViewScreen() {
               <Note size={20} color={colors.primary} weight="bold" />
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Notes</Text>
             </View>
-            {selectedDateData.nutrition?.notes ? (
-              <Text style={[styles.sectionContent, { color: colors.text }]} numberOfLines={2}>
-                {selectedDateData.nutrition.notes}
-              </Text>
-            ) : (
-              <Text style={[styles.sectionPlaceholder, { color: colors.textMuted }]}>
-                Tap to add notes
-              </Text>
-            )}
+            <Text style={[styles.sectionPlaceholder, { color: colors.textMuted }]}>
+              Tap to add notes
+            </Text>
           </TouchableOpacity>
         </View>
 
