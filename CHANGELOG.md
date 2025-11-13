@@ -7,6 +7,35 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [2.0.1] - 2025-11-13
+
+### Fixed
+
+- **Onboarding:** Corrigido erro de contagem (agora tem exatamente 5 telas, não 6)
+  - Removido `FeatureHook` do navigation stack (estava causando 6ª tela indevida)
+  - `FeatureHook.tsx` deletado completamente (não usado)
+- **Feature Flags:** Resolvido conflito entre `FF_ONBOARDING_23` e `FF_ONBOARDING_5_CORE`
+  - `FF_ONBOARDING_23` desativado e removido da interface
+  - `FF_ONBOARDING_CORE8` removido (não utilizado)
+- **Dashboard:** Adicionados cards principais conforme planejamento C2
+  - Card "Evolução do Peso" (gráfico simples de progresso)
+  - Card "Investimento" (resumo financeiro com opt-in para R$/kg)
+
+### Removed
+
+- **Código Legado:** Limpeza completa do onboarding antigo
+  - Deletado `app/(auth)/onboarding-flow.tsx` (618 linhas)
+  - Deletados 27 componentes legados do diretório `components/onboarding/`
+  - Mantidos apenas 4 componentes necessários para novo onboarding
+  - Arquivo `components/onboarding/index.ts` limpo de exports obsoletos
+
+### Changed
+
+- **Progress Indicator:** Mantido em 5 passos (já estava correto)
+- **Estrutura:** ~4.735 linhas de código legado removidas
+
+---
+
 ## [2.0.0] - 2025-11-15
 
 ### Added
