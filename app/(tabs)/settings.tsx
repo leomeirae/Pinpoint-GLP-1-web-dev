@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking, TouchableOpacity, Text, ActivityIndicator, Switch } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Linking, TouchableOpacity, Text, ActivityIndicator, Switch, Platform } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useShotsyColors';
@@ -10,31 +10,29 @@ import { PremiumGate } from '@/components/premium/PremiumGate';
 import { ShotsyCircularProgressV2 } from '@/components/ui/ShotsyCircularProgressV2';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import * as StoreReview from 'expo-store-review';
+import { supabase } from '@/lib/supabase';
 import { createLogger } from '@/lib/logger';
 import { performSignOut, performAccountDeletion } from '@/lib/auth';
-import { trackEvent, getAnalyticsOptIn, setAnalyticsOptIn } from '@/lib/analytics';
+import { getAnalyticsOptIn, setAnalyticsOptIn } from '@/lib/analytics';
 import { useTheme, ThemeMode } from '@/lib/theme-context';
 import {
   CreditCard,
-  Ruler,
   Target,
-  CalendarDots,
-  Palette,
-  GridFour,
   Pill,
   BellRinging,
-  Heart,
   Database,
-  CloudArrowUp,
   Info,
   Question,
-  Megaphone,
   Star,
   SignOut,
   Warning,
-  List,
-  Gear,
   ShieldCheck,
+  Envelope,
+  ChatCircle,
+  FileText,
 } from 'phosphor-react-native';
 
 const logger = createLogger('Settings');
@@ -42,7 +40,8 @@ const logger = createLogger('Settings');
 interface SettingsItem {
   icon: React.ReactNode;
   label: string;
-  color: string;
+  subtitle?: string;
+  color?: string;
   onPress: () => void;
   premium?: boolean;
 }
@@ -51,21 +50,12 @@ export default function SettingsScreen() {
   const colors = useColors();
   const { signOut } = useAuth();
   const { user } = useUser();
-  const { profile } = useProfile();
-  const { settings, updateSettings } = useSettings();
   const { mode, setMode } = useTheme();
 
   // Local state for settings (synced with Supabase)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-
-  // Sync settings from Supabase when loaded
-  useEffect(() => {
-    if (settings) {
-      setNotificationsEnabled(settings.shot_reminder || false);
-    }
-  }, [settings]);
+  const [loading, setLoading] = useState(false);
 
   // Load analytics opt-in status
   useEffect(() => {
@@ -101,22 +91,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const handleToggleNotifications = async (value: boolean) => {
-    try {
-      setNotificationsEnabled(value);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      if (settings) {
-        await updateSettings({ shot_reminder: value });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error) {
-      logger.error('Error updating notifications', error as Error);
-      setNotificationsEnabled(!value);
-      Alert.alert('Erro', 'Não foi possível atualizar as notificações');
-    }
-  };
-
   const handleToggleAnalytics = async (value: boolean) => {
     try {
       setAnalyticsEnabled(value);
@@ -144,12 +118,6 @@ export default function SettingsScreen() {
   };
 
   const handleThemePress = () => {
-    const themeModeLabels: { [key in ThemeMode]: string } = {
-      light: 'Claro',
-      dark: 'Escuro',
-      system: 'Automático (Sistema)',
-    };
-
     Alert.alert(
       'Selecionar Tema',
       'Escolha o tema do aplicativo',
@@ -251,6 +219,247 @@ export default function SettingsScreen() {
     }
   };
 
+  // Helper para converter para CSV
+  const convertToCSV = (data: any): string => {
+    const { applications, weights, purchases } = data;
+    
+    let csv = 'APLICAÇÕES\n';
+    csv += 'Data,Dosagem,Local,Notas\n';
+    applications?.forEach((app: any) => {
+      csv += `${app.application_date},${app.dosage},${app.injection_sites?.[0] || ''},${app.notes || ''}\n`;
+    });
+    
+    csv += '\n\nPESOS\n';
+    csv += 'Data,Peso (kg)\n';
+    weights?.forEach((w: any) => {
+      csv += `${w.date},${w.weight}\n`;
+    });
+    
+    csv += '\n\nCOMPRAS\n';
+    csv += 'Data,Medicamento,Dosagem,Quantidade,Preço (R$)\n';
+    purchases?.forEach((p: any) => {
+      csv += `${p.purchase_date},${p.medication},${p.dosage},${p.quantity},${(p.total_price_cents / 100).toFixed(2)}\n`;
+    });
+    
+    return csv;
+  };
+
+  const handleExportData = async () => {
+    Alert.alert(
+      'Exportar Dados',
+      'Escolha o formato de exportação:',
+      [
+        {
+          text: 'CSV',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              if (!user?.id) {
+                Alert.alert('Erro', 'Usuário não autenticado');
+                setLoading(false);
+                return;
+              }
+              
+              // Buscar todos os dados do usuário
+              const { data: applications } = await supabase
+                .from('applications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('application_date', { ascending: false });
+              
+              const { data: weights } = await supabase
+                .from('weights')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('date', { ascending: false });
+              
+              const { data: purchases } = await supabase
+                .from('purchases')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('purchase_date', { ascending: false });
+              
+              // Converter para CSV
+              const csv = convertToCSV({
+                applications,
+                weights,
+                purchases,
+              });
+              
+              // Salvar arquivo temporário
+              const fileUri = `${FileSystem.documentDirectory}pinpoint-data-${Date.now()}.csv`;
+              await FileSystem.writeAsStringAsync(fileUri, csv, {
+                encoding: FileSystem.EncodingType.UTF8,
+              });
+              
+              // Compartilhar arquivo
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'text/csv',
+                dialogTitle: 'Exportar Dados - Pinpoint GLP-1',
+                UTI: 'public.comma-separated-values-text',
+              });
+              
+              setLoading(false);
+              Alert.alert('Sucesso', 'Dados exportados com sucesso!');
+            } catch (error) {
+              setLoading(false);
+              logger.error('Error exporting data', error as Error);
+              Alert.alert('Erro', 'Não foi possível exportar os dados');
+            }
+          },
+        },
+        {
+          text: 'JSON',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              
+              if (!user?.id) {
+                Alert.alert('Erro', 'Usuário não autenticado');
+                setLoading(false);
+                return;
+              }
+              
+              // Buscar todos os dados
+              const { data: applications } = await supabase
+                .from('applications')
+                .select('*')
+                .eq('user_id', user.id);
+              
+              const { data: weights } = await supabase
+                .from('weights')
+                .select('*')
+                .eq('user_id', user.id);
+              
+              const { data: purchases } = await supabase
+                .from('purchases')
+                .select('*')
+                .eq('user_id', user.id);
+              
+              const exportData = {
+                export_date: new Date().toISOString(),
+                user_id: user.id,
+                applications,
+                weights,
+                purchases,
+              };
+              
+              const json = JSON.stringify(exportData, null, 2);
+              
+              // Salvar arquivo
+              const fileUri = `${FileSystem.documentDirectory}pinpoint-data-${Date.now()}.json`;
+              await FileSystem.writeAsStringAsync(fileUri, json, {
+                encoding: FileSystem.EncodingType.UTF8,
+              });
+              
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'application/json',
+                dialogTitle: 'Exportar Dados - Pinpoint GLP-1',
+              });
+              
+              setLoading(false);
+              Alert.alert('Sucesso', 'Dados exportados com sucesso!');
+            } catch (error) {
+              setLoading(false);
+              logger.error('Error exporting data', error as Error);
+              Alert.alert('Erro', 'Não foi possível exportar os dados');
+            }
+          },
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleDeleteData = () => {
+    Alert.alert(
+      'Apagar Dados',
+      'Isso irá excluir PERMANENTEMENTE todos os seus registros de:\n\n• Aplicações\n• Pesos\n• Compras\n• Efeitos colaterais\n• Pausas no tratamento\n\nSua conta permanecerá ativa.\n\nEsta ação NÃO pode ser desfeita!',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar Tudo',
+          style: 'destructive',
+          onPress: async () => {
+            // Confirmação dupla
+            Alert.alert(
+              'Confirmação Final',
+              'Tem certeza absoluta? Não há como recuperar os dados depois.',
+              [
+                { text: 'Não, Cancelar', style: 'cancel' },
+                {
+                  text: 'Sim, Apagar Tudo',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      if (!user?.id) {
+                        Alert.alert('Erro', 'Usuário não autenticado');
+                        return;
+                      }
+
+                      setLoading(true);
+                      
+                      // Deletar todos os dados do usuário
+                      await Promise.all([
+                        supabase.from('applications').delete().eq('user_id', user.id),
+                        supabase.from('weights').delete().eq('user_id', user.id),
+                        supabase.from('side_effects').delete().eq('user_id', user.id),
+                        supabase.from('purchases').delete().eq('user_id', user.id),
+                        supabase.from('treatment_pauses').delete().eq('user_id', user.id),
+                        supabase.from('alcohol_logs').delete().eq('user_id', user.id),
+                      ]);
+                      
+                      setLoading(false);
+                      Alert.alert(
+                        'Dados Apagados',
+                        'Todos os seus dados foram permanentemente excluídos.',
+                        [
+                          {
+                            text: 'OK',
+                            onPress: () => {
+                              // Recarregar app ou voltar para home
+                              router.replace('/(tabs)/dashboard');
+                            },
+                          },
+                        ]
+                      );
+                    } catch (error) {
+                      setLoading(false);
+                      logger.error('Error deleting data', error as Error);
+                      Alert.alert('Erro', 'Não foi possível apagar os dados. Tente novamente.');
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRateApp = async () => {
+    try {
+      const isAvailable = await StoreReview.isAvailableAsync();
+      
+      if (isAvailable) {
+        // Solicitar avaliação in-app (iOS/Android)
+        await StoreReview.requestReview();
+      } else {
+        // Fallback: abrir loja diretamente
+        const storeUrl = Platform.OS === 'ios'
+          ? 'https://apps.apple.com/app/id[YOUR_APP_ID]' // TODO: Substituir com ID real
+          : 'https://play.google.com/store/apps/details?id=com.pinpointglp1.app'; // TODO: Substituir com package real
+        
+        await Linking.openURL(storeUrl);
+      }
+    } catch (error) {
+      logger.error('Error opening app store', error as Error);
+      Alert.alert('Erro', 'Não foi possível abrir a página de avaliação');
+    }
+  };
+
   const handleSupport = () => {
     Linking.openURL('mailto:support@pinpointglp1.app?subject=Suporte Pinpoint GLP-1');
   };
@@ -266,106 +475,84 @@ export default function SettingsScreen() {
   // Get current theme name from theme context
   const currentTheme = mode === 'light' ? 'Claro' : mode === 'dark' ? 'Escuro' : 'Automático';
 
-  // Shotsy Design: Settings items with Phosphor icons
-  const settingsItems: SettingsItem[] = [
+  // 1. CONTA & ASSINATURA
+  const accountItems: SettingsItem[] = [
     {
-      icon: <CreditCard size={20} color={colors.accentPurple || '#a855f7'} weight="bold" />,
-      label: 'Sua Assinatura',
-      color: colors.accentPurple || '#a855f7',
+      icon: <CreditCard size={20} color={colors.primary} weight="bold" />,
+      label: 'Minha Assinatura',
       onPress: () => router.push('/(tabs)/premium'),
       premium: true,
     },
+  ];
+
+  // 2. TRATAMENTO
+  const treatmentItems: SettingsItem[] = [
     {
-      icon: <Ruler size={20} color={colors.accentBlue || '#3b82f6'} weight="bold" />,
-      label: 'Unidades de Medida',
-      color: colors.accentBlue || '#3b82f6',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
+      icon: <Pill size={20} color={colors.primary} weight="bold" />,
+      label: 'Medicamento & Frequência',
+      onPress: () => router.push('/(tabs)/treatment-settings'),
     },
     {
       icon: <Target size={20} color={colors.accentGreen || '#22c55e'} weight="bold" />,
       label: 'Altura & Peso Meta',
-      color: colors.accentGreen || '#22c55e',
       onPress: () => router.push('/(tabs)/profile'),
     },
     {
-      icon: <CalendarDots size={20} color={colors.accentOrange || '#f97316'} weight="bold" />,
-      label: 'Dias Entre Injeções',
-      color: colors.accentOrange || '#f97316',
-      onPress: () => router.push('/(tabs)/profile'),
-    },
-    {
-      icon: <Palette size={20} color={colors.accentPink || '#ec4899'} weight="bold" />,
-      label: 'Personalizar',
-      color: colors.accentPink || '#ec4899',
-      onPress: handleThemePress,
-    },
-    {
-      icon: <GridFour size={20} color={colors.accentYellow || '#eab308'} weight="bold" />,
-      label: 'Widgets',
-      color: colors.accentYellow || '#eab308',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
-    },
-    {
-      icon: <Pill size={20} color={colors.primary || '#06b6d4'} weight="bold" />,
-      label: 'Medicamentos',
-      color: colors.primary || '#06b6d4',
-      onPress: () => router.push('/(tabs)/medications'),
-    },
-    {
-      icon: <BellRinging size={20} color={colors.accentRed || '#ef4444'} weight="bold" />,
+      icon: <BellRinging size={20} color={colors.accentOrange || '#f97316'} weight="bold" />,
       label: 'Notificações',
-      color: colors.accentRed || '#ef4444',
       onPress: () => router.push('/(tabs)/notification-settings'),
     },
   ];
 
-  // Shotsy Design: Data items
-  const dataItems: SettingsItem[] = [
-    {
-      icon: <Heart size={20} color={colors.accentRed || '#ef4444'} weight="bold" />,
-      label: 'Dados do Apple Saúde',
-      color: colors.accentRed || '#ef4444',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
-    },
+  // 3. DADOS & PRIVACIDADE
+  const privacyItems: SettingsItem[] = [
     {
       icon: <Database size={20} color={colors.accentBlue || '#3b82f6'} weight="bold" />,
-      label: 'Gerenciar Meus Dados',
-      color: colors.accentBlue || '#3b82f6',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
+      label: 'Exportar Meus Dados',
+      subtitle: 'CSV ou JSON',
+      onPress: handleExportData,
     },
     {
-      icon: <CloudArrowUp size={20} color={colors.primary || '#06b6d4'} weight="bold" />,
-      label: 'Status do iCloud',
-      color: colors.primary || '#06b6d4',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
+      icon: <Warning size={20} color={colors.error} weight="bold" />,
+      label: 'Apagar Meus Dados',
+      subtitle: 'Registros e progresso',
+      color: colors.error,
+      onPress: handleDeleteData,
+    },
+    {
+      icon: <ShieldCheck size={20} color={colors.textSecondary} weight="bold" />,
+      label: 'Política de Privacidade',
+      onPress: handlePrivacyPolicy,
+    },
+    {
+      icon: <FileText size={20} color={colors.textSecondary} weight="bold" />,
+      label: 'Termos de Uso',
+      onPress: handleTerms,
     },
   ];
 
-  // Shotsy Design: Info items
-  const infoItems: SettingsItem[] = [
+  // 4. AJUDA & SOBRE
+  const helpItems: SettingsItem[] = [
     {
-      icon: <Info size={20} color={colors.textSecondary || '#6b7280'} weight="bold" />,
-      label: 'Sobre este App',
-      color: colors.textSecondary || '#6b7280',
-      onPress: () => Alert.alert('Pinpoint GLP-1', 'Versão 1.0.0'),
-    },
-    {
-      icon: <Question size={20} color={colors.textSecondary || '#6b7280'} weight="bold" />,
+      icon: <Question size={20} color={colors.textSecondary} weight="bold" />,
       label: 'Perguntas Frequentes',
-      color: colors.textSecondary || '#6b7280',
       onPress: () => router.push('/(tabs)/faq'),
     },
     {
-      icon: <Megaphone size={20} color={colors.textSecondary || '#6b7280'} weight="bold" />,
-      label: 'O que há de novo',
-      color: colors.textSecondary || '#6b7280',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
+      icon: <ChatCircle size={20} color={colors.primary} weight="bold" />,
+      label: 'Falar com Suporte',
+      subtitle: 'Email ou WhatsApp',
+      onPress: handleSupport,
     },
     {
-      icon: <Star size={20} color={colors.textSecondary || '#6b7280'} weight="bold" />,
+      icon: <Info size={20} color={colors.textSecondary} weight="bold" />,
+      label: 'Sobre o App',
+      onPress: () => router.push('/(tabs)/about'),
+    },
+    {
+      icon: <Star size={20} color={colors.accentYellow || '#eab308'} weight="bold" />,
       label: 'Avalie este App',
-      color: colors.textSecondary || '#6b7280',
-      onPress: () => Alert.alert('Em desenvolvimento', 'Esta funcionalidade será implementada em breve.'),
+      onPress: handleRateApp,
     },
   ];
 
@@ -377,10 +564,20 @@ export default function SettingsScreen() {
           isLast && styles.lastItem,
         ]}
         onPress={item.onPress}
+        disabled={loading}
       >
         <View style={styles.settingsItemContent}>
           {item.icon}
-          <Text style={[styles.settingsItemLabel, { color: colors.text }]}>{item.label}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.settingsItemLabel, { color: item.color || colors.text }]}>
+              {item.label}
+            </Text>
+            {item.subtitle && (
+              <Text style={[styles.settingsItemSubtitle, { color: colors.textMuted }]}>
+                {item.subtitle}
+              </Text>
+            )}
+          </View>
         </View>
         <View style={styles.chevronContainer}>
           <Text style={[styles.chevron, { color: colors.textMuted }]}>›</Text>
@@ -401,15 +598,9 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header - Shotsy Style */}
+      {/* Header - Simplified */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.menuButton}>
-          <List size={24} color={colors.text} weight="regular" />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
-        <TouchableOpacity style={styles.gearButton}>
-          <Gear size={24} color={colors.text} weight="regular" />
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Configurações</Text>
       </View>
 
       <ScrollView
@@ -417,9 +608,9 @@ export default function SettingsScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Theme Preview Card - NEW! */}
+        {/* Theme Preview Card */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Current Theme</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tema</Text>
           <TouchableOpacity
             style={[
               styles.themePreviewCard,
@@ -436,10 +627,10 @@ export default function SettingsScreen() {
                 centerText=""
               />
               <View style={styles.themeInfo}>
-                <Text style={[styles.themeLabel, { color: colors.textSecondary }]}>Active Theme</Text>
+                <Text style={[styles.themeLabel, { color: colors.textSecondary }]}>Tema Ativo</Text>
                 <Text style={[styles.themeName, { color: colors.text }]}>{currentTheme}</Text>
                 <Text style={[styles.themeDescription, { color: colors.textMuted }]}>
-                  Tap to customize colors
+                  Tap to customize theme
                 </Text>
               </View>
             </View>
@@ -449,9 +640,9 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Settings Section */}
+        {/* 1. CONTA & ASSINATURA */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Conta & Assinatura</Text>
           <View
             style={[
               styles.settingsCard,
@@ -459,15 +650,46 @@ export default function SettingsScreen() {
               ShotsyDesignTokens.shadows.card,
             ]}
           >
-            {settingsItems.map((item, index) =>
-              renderSettingsItem(item, index, index === settingsItems.length - 1)
+            {/* Email readonly */}
+            <View style={styles.emailContainer}>
+              <Envelope size={20} color={colors.textSecondary} weight="bold" />
+              <View style={styles.emailContent}>
+                <Text style={[styles.emailLabel, { color: colors.textMuted }]}>
+                  Email
+                </Text>
+                <Text style={[styles.emailValue, { color: colors.text }]}>
+                  {user?.email || 'Não disponível'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            
+            {accountItems.map((item, index) =>
+              renderSettingsItem(item, index, index === accountItems.length - 1)
             )}
           </View>
         </View>
 
-        {/* Data Section */}
+        {/* 2. TRATAMENTO */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Data & Privacy</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tratamento</Text>
+          <View
+            style={[
+              styles.settingsCard,
+              { backgroundColor: colors.card },
+              ShotsyDesignTokens.shadows.card,
+            ]}
+          >
+            {treatmentItems.map((item, index) =>
+              renderSettingsItem(item, index, index === treatmentItems.length - 1)
+            )}
+          </View>
+        </View>
+
+        {/* 3. DADOS & PRIVACIDADE */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Dados & Privacidade</Text>
           <View
             style={[
               styles.settingsCard,
@@ -496,20 +718,17 @@ export default function SettingsScreen() {
               />
             </View>
 
-            {/* Divider */}
-            {dataItems.length > 0 && (
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            )}
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-            {dataItems.map((item, index) =>
-              renderSettingsItem(item, index, index === dataItems.length - 1)
+            {privacyItems.map((item, index) =>
+              renderSettingsItem(item, index, index === privacyItems.length - 1)
             )}
           </View>
         </View>
 
-        {/* Info Section */}
+        {/* 4. AJUDA & SOBRE */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Information</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Ajuda & Sobre</Text>
           <View
             style={[
               styles.settingsCard,
@@ -517,15 +736,15 @@ export default function SettingsScreen() {
               ShotsyDesignTokens.shadows.card,
             ]}
           >
-            {infoItems.map((item, index) =>
-              renderSettingsItem(item, index, index === infoItems.length - 1)
+            {helpItems.map((item, index) =>
+              renderSettingsItem(item, index, index === helpItems.length - 1)
             )}
           </View>
         </View>
 
-        {/* Account Section */}
+        {/* 5. AÇÕES DA CONTA (Separado) */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Conta</Text>
           <View
             style={[
               styles.settingsCard,
@@ -536,10 +755,11 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.settingsItem}
               onPress={handleSignOut}
+              disabled={loading}
             >
               <View style={styles.settingsItemContent}>
-                <SignOut size={20} color={colors.accentRed || '#ef4444'} weight="bold" />
-                <Text style={[styles.settingsItemLabel, { color: colors.accentRed || '#ef4444' }]}>
+                <SignOut size={20} color={colors.error} weight="bold" />
+                <Text style={[styles.settingsItemLabel, { color: colors.error }]}>
                   Sair da Conta
                 </Text>
               </View>
@@ -550,15 +770,15 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={[styles.settingsItem, styles.lastItem]}
               onPress={handleDeleteAccount}
-              disabled={deletingAccount}
+              disabled={deletingAccount || loading}
             >
               <View style={styles.settingsItemContent}>
                 {deletingAccount ? (
-                  <ActivityIndicator color={colors.accentRed || '#ef4444'} />
+                  <ActivityIndicator color={colors.error} />
                 ) : (
-                  <Warning size={20} color={colors.accentRed || '#ef4444'} weight="bold" />
+                  <Warning size={20} color={colors.error} weight="bold" />
                 )}
-                <Text style={[styles.settingsItemLabel, { color: colors.accentRed || '#ef4444' }]}>
+                <Text style={[styles.settingsItemLabel, { color: colors.error }]}>
                   {deletingAccount ? 'Excluindo...' : 'Excluir Conta'}
                 </Text>
               </View>
@@ -582,22 +802,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: ShotsyDesignTokens.spacing.lg,
     paddingTop: 60,
     paddingBottom: ShotsyDesignTokens.spacing.md,
     borderBottomWidth: 1,
   },
-  menuButton: {
-    padding: ShotsyDesignTokens.spacing.sm,
-  },
-  gearButton: {
-    padding: ShotsyDesignTokens.spacing.sm,
-  },
   headerTitle: {
     ...ShotsyDesignTokens.typography.h3,
+  },
+  emailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ShotsyDesignTokens.spacing.md,
+    paddingHorizontal: ShotsyDesignTokens.spacing.lg,
+    paddingVertical: ShotsyDesignTokens.spacing.lg,
+  },
+  emailContent: {
+    flex: 1,
+  },
+  emailLabel: {
+    ...ShotsyDesignTokens.typography.caption,
+    marginBottom: 2,
+  },
+  emailValue: {
+    ...ShotsyDesignTokens.typography.body,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
