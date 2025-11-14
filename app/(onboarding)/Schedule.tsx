@@ -56,9 +56,7 @@ export default function ScheduleScreen() {
   };
 
   const handleTimeChange = (_event: any, date?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-    }
+    setShowTimePicker(false);
     if (date) {
       setSelectedTime(date);
       const hours = date.getHours().toString().padStart(2, '0');

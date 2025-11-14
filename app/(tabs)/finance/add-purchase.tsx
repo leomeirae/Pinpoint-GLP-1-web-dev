@@ -41,6 +41,7 @@ export default function AddPurchaseScreen() {
   const [selectedMedication, setSelectedMedication] = useState<MedicationConfig | null>(null);
   const [brand, setBrand] = useState('');
   const [selectedDosage, setSelectedDosage] = useState<number | null>(null);
+  const [dosageInputText, setDosageInputText] = useState<string>('');
   const [packageQty, setPackageQty] = useState('4');
   const [quantity, setQuantity] = useState('1');
   const [priceInput, setPriceInput] = useState('');
@@ -89,6 +90,7 @@ export default function AddPurchaseScreen() {
     }
     setBrand(purchase.brand || '');
     setSelectedDosage(purchase.dosage);
+    setDosageInputText(purchase.dosage?.toString() || '');
     setPackageQty(String(purchase.package_qty));
     setQuantity(String(purchase.quantity));
     setPriceInput((purchase.total_price_cents / 100).toFixed(2));
@@ -101,6 +103,7 @@ export default function AddPurchaseScreen() {
   const handleMedicationSelect = (medication: MedicationConfig) => {
     setSelectedMedication(medication);
     setSelectedDosage(null); // Reset dosage
+    setDosageInputText(''); // Reset dosage input
   };
 
   const formatCurrencyInput = (value: string) => {
@@ -298,11 +301,20 @@ export default function AddPurchaseScreen() {
               ]}
               placeholder="Ex: 2.5, 5, 7.5, 10, 12.5, 15"
               placeholderTextColor={colors.textMuted}
-              keyboardType="decimal-pad"
-              value={selectedDosage !== null ? String(selectedDosage) : ''}
+              keyboardType="numbers-and-punctuation"
+              value={dosageInputText}
               onChangeText={(text) => {
-                const numValue = parseFloat(text.replace(',', '.'));
-                setSelectedDosage(isNaN(numValue) ? null : numValue);
+                // Permitir apenas números, ponto e vírgula
+                const sanitized = text.replace(/[^0-9.,]/g, '').replace(',', '.');
+                setDosageInputText(sanitized);
+                
+                // Atualizar o valor numérico em selectedDosage
+                if (sanitized === '' || sanitized === '.') {
+                  setSelectedDosage(null);
+                } else {
+                  const numValue = parseFloat(sanitized);
+                  setSelectedDosage(isNaN(numValue) ? null : numValue);
+                }
               }}
             />
           </View>
@@ -359,7 +371,7 @@ export default function AddPurchaseScreen() {
               ]}
               value={priceInput}
               onChangeText={handlePriceChange}
-              keyboardType="decimal-pad"
+              keyboardType="numbers-and-punctuation"
               placeholder="0,00"
               placeholderTextColor={colors.textMuted}
             />
@@ -390,7 +402,7 @@ export default function AddPurchaseScreen() {
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={(event, selectedDate) => {
-                setShowDatePicker(Platform.OS === 'ios');
+                setShowDatePicker(false);
                 if (selectedDate) {
                   setPurchaseDate(selectedDate);
                 }

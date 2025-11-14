@@ -62,17 +62,6 @@ const INJECTION_SITES = [
   { id: 'unknown', name: 'Desconhecido' },
 ];
 
-// Dosage colors - these are intentionally hardcoded as they represent
-// specific dosage levels and should remain consistent across themes
-const DOSAGES = [
-  { value: 2.5, color: '#6B7280' }, // Gray
-  { value: 5, color: '#8B5CF6' }, // Purple
-  { value: 7.5, color: '#14B8A6' }, // Teal
-  { value: 10, color: '#EC4899' }, // Pink
-  { value: 12.5, color: '#3B82F6' }, // Blue
-  { value: 15, color: '#EF4444' }, // Red
-];
-
 export default function AddApplicationScreen() {
   const colors = useColors();
   const params = useLocalSearchParams();
@@ -105,8 +94,8 @@ export default function AddApplicationScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showMedicationModal, setShowMedicationModal] = useState(false);
-  const [showDosageModal, setShowDosageModal] = useState(false);
   const [showInjectionSiteModal, setShowInjectionSiteModal] = useState(false);
+  const [dosageInput, setDosageInput] = useState<string>('');
 
   // Load data if editing
   useEffect(() => {
@@ -122,6 +111,7 @@ export default function AddApplicationScreen() {
           notes: applicationToEdit.notes || '',
           medication: 'mounjaro', // medication_type was removed, using default
         });
+        setDosageInput(applicationToEdit.dosage?.toString() || '');
       }
     }
   }, [isEditMode, params.editId, applications]);
@@ -298,10 +288,6 @@ export default function AddApplicationScreen() {
     return INJECTION_SITES.find((s) => s.id === data.injectionSite)?.name || '';
   };
 
-  const getDosageColor = (dosage: number) => {
-    return DOSAGES.find((d) => d.value === dosage)?.color || colors.primary;
-  };
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -394,7 +380,7 @@ export default function AddApplicationScreen() {
               ]}
             >
               <View style={styles.timeRow}>
-                <Text style={[styles.timeInputText, { color: colors.text }]}>Tempo Decorrido</Text>
+                <Text style={[styles.timeInputText, { color: colors.text }]}>Hora da Aplicação</Text>
                 <TouchableOpacity onPress={() => setShowTimePicker(true)}>
                   <Text style={[styles.timeValue, { color: colors.text }]}>{formatTime(data.date)}</Text>
                 </TouchableOpacity>
@@ -425,31 +411,39 @@ export default function AddApplicationScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Dosagem - V0 Design */}
+            {/* Dosagem - Input Editável */}
             <View
               style={[
-                styles.detailRow,
+                styles.inputCard,
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <Text style={[styles.detailLabel, { color: colors.text }]}>Dosagem</Text>
-              <TouchableOpacity style={styles.detailValue} onPress={() => setShowDosageModal(true)}>
-                {data.dosage ? (
-                  <View
-                    style={[
-                      styles.dosageTag,
-                      { backgroundColor: '#4B5563' }, // V0 Design: gray-600
-                    ]}
-                  >
-                    <Text style={styles.dosageTagText}>{data.dosage}mg</Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.detailValueText, { color: colors.textSecondary }]}>
-                    Selecione
-                  </Text>
-                )}
-                <Ionicons name="chevron-down" size={16} color={colors.text} />
-              </TouchableOpacity>
+              <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginBottom: 8 }]}>
+                Dosagem (mg)
+              </Text>
+              <TextInput
+                style={[styles.dosageInput, { color: colors.text }]}
+                placeholder="Ex: 5, 7.5, 10"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numbers-and-punctuation"
+                value={dosageInput}
+                onChangeText={(text) => {
+                  // Permitir apenas números, ponto e vírgula
+                  const sanitized = text.replace(/[^0-9.,]/g, '').replace(',', '.');
+                  setDosageInput(sanitized);
+                  
+                  // Atualizar o valor numérico em data.dosage
+                  if (sanitized === '' || sanitized === '.') {
+                    setData({ ...data, dosage: null });
+                  } else {
+                    const numericValue = parseFloat(sanitized);
+                    setData({ 
+                      ...data, 
+                      dosage: isNaN(numericValue) ? null : numericValue 
+                    });
+                  }
+                }}
+              />
             </View>
 
             {/* Local de Injeção - V0 Design */}
@@ -581,53 +575,6 @@ export default function AddApplicationScreen() {
           </View>
         </Modal>
 
-        {/* Dosage Modal */}
-        <Modal
-          visible={showDosageModal}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowDosageModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-                <TouchableOpacity onPress={() => setShowDosageModal(false)}>
-                  <Text style={[styles.modalCloseButton, { color: colors.primary }]}>Fechar</Text>
-                </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Opções de Dosagem</Text>
-                <View style={{ width: 60 }} />
-              </View>
-              <FlatList
-                data={DOSAGES}
-                keyExtractor={(item) => item.value.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.modalItem,
-                      { borderBottomColor: colors.border },
-                      data.dosage === item.value && { backgroundColor: colors.cardSecondary },
-                    ]}
-                    onPress={() => {
-                      setData({ ...data, dosage: item.value });
-                      setShowDosageModal(false);
-                      Haptics.selectionAsync();
-                    }}
-                  >
-                    <View style={[styles.dosageTag, { backgroundColor: item.color }]}>
-                      <Text style={styles.dosageTagText}>{item.value}mg</Text>
-                    </View>
-                    {data.dosage === item.value && (
-                      <View style={[styles.dosageCheck, { borderColor: item.color }]}>
-                        <View style={[styles.dosageCheckInner, { backgroundColor: item.color }]} />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          </View>
-        </Modal>
-
         {/* Injection Site Modal */}
         <Modal
           visible={showInjectionSiteModal}
@@ -684,7 +631,7 @@ export default function AddApplicationScreen() {
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             maximumDate={new Date()}
             onChange={(_event, selectedDate) => {
-              setShowDatePicker(Platform.OS === 'ios');
+              setShowDatePicker(false);
               if (selectedDate) {
                 setData({ ...data, date: selectedDate });
               }
@@ -699,7 +646,7 @@ export default function AddApplicationScreen() {
             mode="time"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={(_event, selectedDate) => {
-              setShowTimePicker(Platform.OS === 'ios');
+              setShowTimePicker(false);
               if (selectedDate) {
                 setData({ ...data, date: selectedDate });
               }
@@ -821,21 +768,16 @@ const styles = StyleSheet.create({
   detailValueTextRight: {
     textAlign: 'right',
   },
-  dosageTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  dosageTagText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   chartContainer: {
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
     minHeight: 200,
+  },
+  dosageInput: {
+    fontSize: 18,
+    fontWeight: '600',
+    padding: 0,
   },
   notesInput: {
     fontSize: 16,
@@ -906,18 +848,5 @@ const styles = StyleSheet.create({
   modalItemCheck: {
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  dosageCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dosageCheckInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
   },
 });

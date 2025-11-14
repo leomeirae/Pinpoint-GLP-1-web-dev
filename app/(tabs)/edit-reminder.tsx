@@ -49,9 +49,7 @@ export default function EditReminderScreen() {
   }, [user, userLoading]);
 
   const handleTimeChange = (_event: any, date?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false);
-    }
+    setShowTimePicker(false);
     if (date) {
       setSelectedTime(date);
     }

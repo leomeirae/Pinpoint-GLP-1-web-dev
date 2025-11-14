@@ -12,8 +12,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions, ScrollView } from 'react-native';
-import { VictoryChart, VictoryArea, VictoryAxis, VictoryLine } from 'victory-native';
-import { LinearGradient, Defs, Stop } from 'react-native-svg';
+import { LineChart } from 'react-native-chart-kit';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useApplications } from '@/hooks/useApplications';
 import { Info, CalendarBlank } from 'phosphor-react-native';
@@ -151,9 +150,57 @@ export const EstimatedLevelsChartV2: React.FC = () => {
     };
   }, [applications, selectedPeriod]);
 
-  // Separate past and future data for different line styles
-  const pastData = chartData.filter((d) => !d.isFuture);
-  const futureData = chartData.filter((d, i) => d.isFuture || i === todayIndex);
+  // Transform data for react-native-chart-kit
+  const chartKitData = useMemo(() => {
+    if (chartData.length === 0) {
+      return { labels: [''], datasets: [{ data: [0] }] };
+    }
+
+    // Sample data to max 30 points for performance
+    const step = Math.max(1, Math.floor(chartData.length / 30));
+    const sampledData = chartData.filter((_, index) => index % step === 0);
+
+    // Always include last point
+    if (sampledData[sampledData.length - 1] !== chartData[chartData.length - 1]) {
+      sampledData.push(chartData[chartData.length - 1]);
+    }
+
+    const now = new Date();
+    const labels = sampledData.map((point) => {
+      const isToday = point.date.toDateString() === now.toDateString();
+      const isFuture = point.isFuture;
+
+      if (selectedPeriod === 'week') {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayLabel = days[point.date.getDay()];
+        if (isToday) return `● ${dayLabel}`;
+        if (isFuture) return `${dayLabel}*`;
+        return dayLabel;
+      } else {
+        const dateLabel = `${point.date.getDate()}/${point.date.getMonth() + 1}`;
+        if (isToday) return `● ${dateLabel}`;
+        if (isFuture) return `${dateLabel}*`;
+        return dateLabel;
+      }
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          data: sampledData.map((d) => d.y),
+          strokeWidth: 2.5,
+          color: (opacity = 1) => {
+            const hex = gradient.start.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+          },
+        },
+      ],
+    };
+  }, [chartData, selectedPeriod, gradient]);
 
   // Empty state
   if (applications.length === 0) {
