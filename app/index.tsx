@@ -56,14 +56,11 @@ export default function IndexScreen() {
               hasRedirectedRef.current = false;
             }, 500);
           } else {
-            // Sem guest mode, redirecionar para welcome/onboarding
-            logger.info('User not signed in and no guest mode, redirecting to welcome', { useOnboarding5Core });
+            // Sem guest mode, redirecionar para novo onboarding
+            logger.info('User not signed in and no guest mode, redirecting to onboarding', { useOnboarding5Core });
             hasRedirectedRef.current = true;
-            if (useOnboarding5Core) {
-              router.replace('/(onboarding)/Welcome');
-            } else {
-              router.replace('/(auth)/welcome');
-            }
+            // SEMPRE usar novo onboarding (5 telas core)
+            router.replace('/(onboarding)/Welcome');
             setTimeout(() => {
               hasRedirectedRef.current = false;
             }, 500);
@@ -71,9 +68,9 @@ export default function IndexScreen() {
         })
         .catch((error) => {
           logger.error('Error checking guest mode', error as Error);
-          // Em caso de erro, redirecionar para welcome
+          // Em caso de erro, redirecionar para novo onboarding
           hasRedirectedRef.current = true;
-          router.replace('/(auth)/welcome');
+          router.replace('/(onboarding)/Welcome');
           setTimeout(() => {
             hasRedirectedRef.current = false;
           }, 500);
@@ -96,12 +93,8 @@ export default function IndexScreen() {
         waitTime
       });
       hasRedirectedRef.current = true;
-      const useOnboarding5Core = useFeatureFlag('FF_ONBOARDING_5_CORE');
-      if (useOnboarding5Core) {
-        router.replace('/(onboarding)/Welcome');
-      } else {
-        router.replace('/(auth)/onboarding-flow');
-      }
+      // SEMPRE usar novo onboarding (5 telas core)
+      router.replace('/(onboarding)/Welcome');
       setTimeout(() => {
         hasRedirectedRef.current = false;
       }, 500);
@@ -126,12 +119,8 @@ export default function IndexScreen() {
         note: 'This usually means Supabase query failed or user does not exist yet'
       });
       hasRedirectedRef.current = true;
-      const useOnboarding5Core = useFeatureFlag('FF_ONBOARDING_5_CORE');
-      if (useOnboarding5Core) {
-        router.replace('/(onboarding)/Welcome');
-      } else {
-        router.replace('/(auth)/onboarding-flow');
-      }
+      // SEMPRE usar novo onboarding (5 telas core)
+      router.replace('/(onboarding)/Welcome');
       setTimeout(() => {
         hasRedirectedRef.current = false;
       }, 500);
@@ -183,12 +172,8 @@ export default function IndexScreen() {
             onboarding_completed: false,
             onboarding_field_exists: 'onboarding_completed' in user,
           });
-          // Usar novo onboarding 5 core se feature flag estiver ativa
-          if (useOnboarding5Core) {
-            router.replace('/(onboarding)/Welcome');
-          } else {
-            router.replace('/(auth)/onboarding-flow');
-          }
+          // SEMPRE usar novo onboarding (5 telas core)
+          router.replace('/(onboarding)/Welcome');
         } else {
           logger.info('✅ Redirecting to dashboard', {
             onboarding_completed: user.onboarding_completed,
