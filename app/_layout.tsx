@@ -5,6 +5,7 @@ import 'react-native-gesture-handler';
 import { ClerkProvider } from '@clerk/clerk-expo';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@/lib/theme-context';
 import { useColors } from '@/constants/colors';
 import { tokenCache, validateClerkKey } from '@/lib/clerk';
@@ -69,10 +70,12 @@ export default function RootLayout() {
   const publishableKey = validateClerkKey();
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ThemeProvider>
-        <RootStack />
-      </ThemeProvider>
-    </ClerkProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <ThemeProvider>
+          <RootStack />
+        </ThemeProvider>
+      </ClerkProvider>
+    </GestureHandlerRootView>
   );
 }

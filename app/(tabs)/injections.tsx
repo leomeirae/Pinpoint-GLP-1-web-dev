@@ -18,7 +18,7 @@ import { createLogger } from '@/lib/logger';
 import { ShotsyCircularProgressV2 } from '@/components/ui/ShotsyCircularProgressV2';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import { getDosageColor } from '@/lib/dosageColors';
-import { Syringe, Pill, ChartBar, Plus, List } from 'phosphor-react-native';
+import { Syringe, Pill, ChartBar, Plus } from 'phosphor-react-native';
 
 const logger = createLogger('Injections');
 
@@ -147,9 +147,6 @@ export default function ShotsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header - Shotsy Style */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.menuButton}>
-          <List size={24} color={colors.text} weight="regular" />
-        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Injections</Text>
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/add-application')}
@@ -318,9 +315,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: ShotsyDesignTokens.spacing.md,
     borderBottomWidth: 1,
-  },
-  menuButton: {
-    padding: ShotsyDesignTokens.spacing.sm,
   },
   headerTitle: {
     ...ShotsyDesignTokens.typography.h3,

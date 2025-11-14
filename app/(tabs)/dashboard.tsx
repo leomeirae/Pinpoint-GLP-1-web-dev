@@ -2,7 +2,8 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ScrollView, View, StyleSheet, RefreshControl, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useShotsyColors';
-import { EstimatedLevelsChartV2 } from '@/components/dashboard/EstimatedLevelsChartV2';
+import { EstimatedLevelChart } from '@/components/charts/EstimatedLevelChart';
+import { calculateEstimatedLevels } from '@/lib/pharmacokinetics';
 import { NextShotWidget } from '@/components/dashboard/NextShotWidget';
 import { ShotsyCircularProgressV2, ProgressValue } from '@/components/ui/ShotsyCircularProgressV2';
 import { WeightChart } from '@/components/dashboard/WeightChart';
@@ -16,7 +17,7 @@ import { useFeatureFlag } from '@/lib/feature-flags';
 import { calculateTotalSpent, calculateWeeklySpent, calculateCostPerKg } from '@/lib/finance';
 import { calculateNextShotDate, getCurrentEstimatedLevel, MedicationApplication } from '@/lib/pharmacokinetics';
 import { createLogger } from '@/lib/logger';
-import { List, Plus } from 'phosphor-react-native';
+import { Plus } from 'phosphor-react-native';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import { getDosageColor } from '@/lib/dosageColors';
 import { FadeInView, ScalePress } from '@/components/animations';
@@ -32,6 +33,7 @@ const DASHBOARD_FIRST_VISIT_KEY = '@mounjaro:dashboard_first_visit';
 function DashboardContent() {
   const colors = useColors();
   const [refreshing, setRefreshing] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState<'week' | 'month' | '90days' | 'all'>('week');
   const { startTour } = useCoachmarks();
 
   // Fetch real data from Supabase
@@ -150,6 +152,52 @@ function DashboardContent() {
     };
   }, [purchases, weights, profile, financeEnabled]);
 
+  // Calculate chart data for Estimated Levels
+  const estimatedLevelsData = useMemo(() => {
+    if (applications.length === 0) {
+      return [];
+    }
+
+    // Convert applications to the format expected by pharmacokinetics
+    const medApplications = applications.map((app) => ({
+      dose: app.dosage,
+      date: app.date,
+    }));
+
+    // Calculate date range based on selected period
+    const now = new Date();
+    let startDate: Date;
+    let endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // +7 days for forecast
+
+    switch (chartPeriod) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90days':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'all':
+        startDate = medApplications.length > 0 
+          ? new Date(Math.min(...medApplications.map(a => a.date.getTime())))
+          : new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate estimated levels
+    const levels = calculateEstimatedLevels(medApplications, startDate, endDate);
+
+    // Transform to the format expected by the chart component
+    return levels.map((level) => ({
+      date: level.date,
+      levelMg: level.level,
+    }));
+  }, [applications, chartPeriod]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -169,9 +217,6 @@ function DashboardContent() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header - Shotsy Style */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={styles.menuButton}>
-          <List size={24} color={colors.text} weight="regular" />
-        </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Summary</Text>
         <Coachmark
           id="home_add_dose"
@@ -293,12 +338,14 @@ function DashboardContent() {
           </View>
         )}
 
-        {/* Estimated Medication Levels - V2 Chart */}
-        {/* TEMPORÁRIO: Comentado devido a incompatibilidade do victory-native v41.20.2 */}
-        {/* TODO: Corrigir victory-native ou usar biblioteca alternativa (recharts-native) */}
-        {/* <FadeInView duration={800} delay={200} style={styles.section}>
-          <EstimatedLevelsChartV2 />
-        </FadeInView> */}
+        {/* Estimated Medication Levels - New Chart */}
+        <FadeInView duration={800} delay={200} style={styles.section}>
+          <EstimatedLevelChart 
+            data={estimatedLevelsData} 
+            range={chartPeriod} 
+            onRangeChange={setChartPeriod}
+          />
+        </FadeInView>
 
         {/* Weight Evolution Chart */}
         {weights.length > 0 && (
@@ -379,9 +426,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: ShotsyDesignTokens.spacing.lg,
     paddingBottom: ShotsyDesignTokens.spacing.md,
     borderBottomWidth: 1,
-  },
-  menuButton: {
-    padding: ShotsyDesignTokens.spacing.sm,
   },
   headerTitle: {
     ...ShotsyDesignTokens.typography.h3,

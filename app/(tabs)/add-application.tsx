@@ -208,7 +208,7 @@ export default function AddApplicationScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       Alert.alert('Sucesso', isEditMode ? 'Aplicação atualizada!' : 'Aplicação adicionada!', [
-        { text: 'OK', onPress: () => router.back() },
+        { text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') },
       ]);
     } catch (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -235,7 +235,7 @@ export default function AddApplicationScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
             Alert.alert('Sucesso', 'Aplicação deletada com sucesso!', [
-              { text: 'OK', onPress: () => router.back() },
+              { text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') },
             ]);
           } catch (error) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
