@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/lib/logger';
 import { performSignOut, performAccountDeletion } from '@/lib/auth';
 import { trackEvent, getAnalyticsOptIn, setAnalyticsOptIn } from '@/lib/analytics';
+import { useTheme, ThemeMode } from '@/lib/theme-context';
 import {
   CreditCard,
   Ruler,
@@ -52,6 +53,7 @@ export default function SettingsScreen() {
   const { user } = useUser();
   const { profile } = useProfile();
   const { settings, updateSettings } = useSettings();
+  const { mode, setMode } = useTheme();
 
   // Local state for settings (synced with Supabase)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -141,6 +143,50 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleThemePress = () => {
+    const themeModeLabels: { [key in ThemeMode]: string } = {
+      light: 'Claro',
+      dark: 'Escuro',
+      system: 'Automático (Sistema)',
+    };
+
+    Alert.alert(
+      'Selecionar Tema',
+      'Escolha o tema do aplicativo',
+      [
+        {
+          text: 'Claro',
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            await setMode('light');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+          style: mode === 'light' ? 'default' : undefined,
+        },
+        {
+          text: 'Escuro',
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            await setMode('dark');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+          style: mode === 'dark' ? 'default' : undefined,
+        },
+        {
+          text: 'Automático',
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            await setMode('system');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+          style: mode === 'system' ? 'default' : undefined,
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Excluir Conta',
@@ -217,8 +263,8 @@ export default function SettingsScreen() {
     Linking.openURL('https://pinpointglp1.app/terms');
   };
 
-  // Get current theme name (simplified - you can make this dynamic based on actual theme)
-  const currentTheme = settings?.theme || 'Auto';
+  // Get current theme name from theme context
+  const currentTheme = mode === 'light' ? 'Claro' : mode === 'dark' ? 'Escuro' : 'Automático';
 
   // Shotsy Design: Settings items with Phosphor icons
   const settingsItems: SettingsItem[] = [
@@ -251,7 +297,7 @@ export default function SettingsScreen() {
       icon: <Palette size={20} color={colors.accentPink || '#ec4899'} weight="bold" />,
       label: 'Personalizar',
       color: colors.accentPink || '#ec4899',
-      onPress: () => router.push('/(tabs)/theme'),
+      onPress: handleThemePress,
     },
     {
       icon: <GridFour size={20} color={colors.accentYellow || '#eab308'} weight="bold" />,
@@ -380,7 +426,7 @@ export default function SettingsScreen() {
               { backgroundColor: colors.card },
               ShotsyDesignTokens.shadows.card,
             ]}
-            onPress={() => router.push('/(tabs)/theme')}
+            onPress={handleThemePress}
           >
             <View style={styles.themePreviewContent}>
               <ShotsyCircularProgressV2
