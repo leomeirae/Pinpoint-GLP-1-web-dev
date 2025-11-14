@@ -236,6 +236,11 @@ export async function scheduleWeeklyReminderWithWindow(
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     logger.info('Timezone detectado', { timezone });
 
+    // Converter weekday de JavaScript (0-6) para Expo (1-7)
+    // JavaScript: 0=Domingo, 1=Segunda, ... 6=Sábado
+    // Expo: 1=Domingo, 2=Segunda, ... 7=Sábado
+    const expoWeekday = weekday + 1;
+
     // Agendar notificação inicial (início da janela)
     const initialId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -252,14 +257,14 @@ export async function scheduleWeeklyReminderWithWindow(
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday,
+        weekday: expoWeekday,
         hour: startHour,
         minute: startMinute,
         repeats: true,
       },
     });
 
-    logger.info('Notificação inicial agendada', { id: initialId, weekday, time: windowStart });
+    logger.info('Notificação inicial agendada', { id: initialId, weekday, expoWeekday, time: windowStart });
 
     // Calcular horário do catch-up (2h depois do início)
     let catchupHour = startHour + 2;
@@ -286,7 +291,7 @@ export async function scheduleWeeklyReminderWithWindow(
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday,
+        weekday: expoWeekday,
         hour: catchupHour,
         minute: catchupMinute,
         repeats: true,
@@ -296,6 +301,7 @@ export async function scheduleWeeklyReminderWithWindow(
     logger.info('Notificação de catch-up agendada', {
       id: catchupId,
       weekday,
+      expoWeekday,
       time: `${catchupHour}:${catchupMinute}`,
     });
 

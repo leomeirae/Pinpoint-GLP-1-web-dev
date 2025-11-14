@@ -366,6 +366,8 @@ export function useOnboarding() {
           savedAt: new Date().toISOString(),
         };
         await AsyncStorage.setItem('@mounjaro:guest_onboarding', JSON.stringify(guestData));
+        // ✅ Marcar onboarding como completo em modo guest
+        await AsyncStorage.setItem('@mounjaro:guest_onboarding_completed', 'true');
         logger.info('Guest onboarding data saved to AsyncStorage');
         return { success: true, guestMode: true };
       } catch (error) {

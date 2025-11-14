@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Linking, TouchableOpacity, Text, ActivityIndicator, Switch } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { useColors } from '@/hooks/useShotsyColors';
@@ -12,7 +12,7 @@ import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/lib/logger';
 import { performSignOut, performAccountDeletion } from '@/lib/auth';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, getAnalyticsOptIn, setAnalyticsOptIn } from '@/lib/analytics';
 import {
   CreditCard,
   Ruler,
@@ -55,6 +55,7 @@ export default function SettingsScreen() {
 
   // Local state for settings (synced with Supabase)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Sync settings from Supabase when loaded
@@ -63,6 +64,15 @@ export default function SettingsScreen() {
       setNotificationsEnabled(settings.shot_reminder || false);
     }
   }, [settings]);
+
+  // Load analytics opt-in status
+  useEffect(() => {
+    const loadAnalyticsStatus = async () => {
+      const optIn = await getAnalyticsOptIn();
+      setAnalyticsEnabled(optIn);
+    };
+    loadAnalyticsStatus();
+  }, []);
 
   const handleSignOut = async () => {
     Alert.alert('Sair da Conta', 'Tem certeza que deseja sair?', [
@@ -102,6 +112,32 @@ export default function SettingsScreen() {
       logger.error('Error updating notifications', error as Error);
       setNotificationsEnabled(!value);
       Alert.alert('Erro', 'Não foi possível atualizar as notificações');
+    }
+  };
+
+  const handleToggleAnalytics = async (value: boolean) => {
+    try {
+      setAnalyticsEnabled(value);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (!user?.id) {
+        Alert.alert('Erro', 'Usuário não autenticado');
+        setAnalyticsEnabled(!value);
+        return;
+      }
+
+      await setAnalyticsOptIn(value, user.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      const message = value 
+        ? 'Dados anônimos de uso serão compartilhados para melhorar o app.' 
+        : 'Dados de uso não serão mais compartilhados.';
+      
+      Alert.alert(value ? 'Ativado' : 'Desativado', message);
+    } catch (error) {
+      logger.error('Error updating analytics opt-in', error as Error);
+      setAnalyticsEnabled(!value);
+      Alert.alert('Erro', 'Não foi possível atualizar as preferências de analytics');
     }
   };
 
@@ -239,12 +275,6 @@ export default function SettingsScreen() {
 
   // Shotsy Design: Data items
   const dataItems: SettingsItem[] = [
-    {
-      icon: <ShieldCheck size={20} color={colors.accentPurple || '#a855f7'} weight="bold" />,
-      label: 'Consentimentos & Privacidade',
-      color: colors.accentPurple || '#a855f7',
-      onPress: () => router.push('/(tabs)/settings/privacy' as any),
-    },
     {
       icon: <Heart size={20} color={colors.accentRed || '#ef4444'} weight="bold" />,
       label: 'Dados do Apple Saúde',
@@ -399,6 +429,32 @@ export default function SettingsScreen() {
               ShotsyDesignTokens.shadows.card,
             ]}
           >
+            {/* Analytics Opt-in Toggle */}
+            <View style={styles.settingsItem}>
+              <View style={styles.settingsItemContent}>
+                <ShieldCheck size={20} color={colors.accentPurple || '#a855f7'} weight="bold" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingsItemLabel, { color: colors.text }]}>
+                    Compartilhar Dados de Uso
+                  </Text>
+                  <Text style={[styles.settingsItemSubtitle, { color: colors.textMuted }]}>
+                    Ajude a melhorar o app com dados anônimos
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={analyticsEnabled}
+                onValueChange={handleToggleAnalytics}
+                trackColor={{ false: colors.textMuted, true: colors.primary }}
+                thumbColor={colors.card}
+              />
+            </View>
+
+            {/* Divider */}
+            {dataItems.length > 0 && (
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            )}
+
             {dataItems.map((item, index) =>
               renderSettingsItem(item, index, index === dataItems.length - 1)
             )}
@@ -567,6 +623,14 @@ const styles = StyleSheet.create({
   settingsItemLabel: {
     ...ShotsyDesignTokens.typography.body,
     fontWeight: '500',
+  },
+  settingsItemSubtitle: {
+    ...ShotsyDesignTokens.typography.caption,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    marginLeft: ShotsyDesignTokens.spacing.lg + 20 + ShotsyDesignTokens.spacing.md, // icon width + gap
   },
   chevronContainer: {
     width: 20,

@@ -294,9 +294,11 @@ function DashboardContent() {
         )}
 
         {/* Estimated Medication Levels - V2 Chart */}
-        <FadeInView duration={800} delay={200} style={styles.section}>
+        {/* TEMPORÁRIO: Comentado devido a incompatibilidade do victory-native v41.20.2 */}
+        {/* TODO: Corrigir victory-native ou usar biblioteca alternativa (recharts-native) */}
+        {/* <FadeInView duration={800} delay={200} style={styles.section}>
           <EstimatedLevelsChartV2 />
-        </FadeInView>
+        </FadeInView> */}
 
         {/* Weight Evolution Chart */}
         {weights.length > 0 && (

@@ -292,7 +292,7 @@ export default function AddPurchaseScreen() {
               Dosagem <Text style={{ color: colors.error }}>*</Text>
             </Text>
             <View style={styles.optionsGrid}>
-              {selectedMedication.available_doses.map((dose) => (
+              {selectedMedication?.availableDoses?.map((dose) => (
                 <ScalePress
                   key={dose}
                   onPress={() => handleDosageSelect(dose)}

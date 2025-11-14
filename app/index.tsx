@@ -8,6 +8,7 @@ import { useUserSync } from '@/hooks/useUserSync';
 import { createLogger } from '@/lib/logger';
 import { trackEvent } from '@/lib/analytics';
 import { useFeatureFlag } from '@/lib/feature-flags';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const logger = createLogger('IndexScreen');
 
@@ -41,19 +42,42 @@ export default function IndexScreen() {
       return;
     }
 
-    // Se não estiver autenticado, ir para welcome ou novo onboarding
+    // Se não estiver autenticado, verificar guest mode primeiro
     if (!isSignedIn) {
-      logger.info('User not signed in, redirecting to welcome', { useOnboarding5Core });
-      hasRedirectedRef.current = true;
-      // Se feature flag ativada, ir direto para novo onboarding
-      if (useOnboarding5Core) {
-        router.replace('/(onboarding)/Welcome');
-      } else {
-        router.replace('/(auth)/welcome');
-      }
-      setTimeout(() => {
-        hasRedirectedRef.current = false;
-      }, 500);
+      // Verificar se completou onboarding em modo guest
+      AsyncStorage.getItem('@mounjaro:guest_onboarding_completed')
+        .then((guestCompleted) => {
+          if (guestCompleted === 'true') {
+            // Guest mode ativo, permitir acesso ao dashboard
+            logger.info('Guest mode active, redirecting to dashboard', { guestCompleted });
+            hasRedirectedRef.current = true;
+            router.replace('/(tabs)/dashboard');
+            setTimeout(() => {
+              hasRedirectedRef.current = false;
+            }, 500);
+          } else {
+            // Sem guest mode, redirecionar para welcome/onboarding
+            logger.info('User not signed in and no guest mode, redirecting to welcome', { useOnboarding5Core });
+            hasRedirectedRef.current = true;
+            if (useOnboarding5Core) {
+              router.replace('/(onboarding)/Welcome');
+            } else {
+              router.replace('/(auth)/welcome');
+            }
+            setTimeout(() => {
+              hasRedirectedRef.current = false;
+            }, 500);
+          }
+        })
+        .catch((error) => {
+          logger.error('Error checking guest mode', error as Error);
+          // Em caso de erro, redirecionar para welcome
+          hasRedirectedRef.current = true;
+          router.replace('/(auth)/welcome');
+          setTimeout(() => {
+            hasRedirectedRef.current = false;
+          }, 500);
+        });
       return;
     }
 

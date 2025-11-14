@@ -12,11 +12,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions, ScrollView } from 'react-native';
-import { VictoryChart, VictoryArea, VictoryAxis, VictoryLine } from 'victory-native';
-import { LinearGradient, Defs, Stop } from 'react-native-svg';
+// TEMPORÁRIO: victory-native com problemas de compatibilidade
+// import { VictoryChart, VictoryArea, VictoryAxis, VictoryLine } from 'victory-native';
+// import { LinearGradient, Defs, Stop } from 'react-native-svg';
 import { useShotsyColors } from '@/hooks/useShotsyColors';
 import { useApplications } from '@/hooks/useApplications';
-import { Info, CalendarBlank } from 'phosphor-react-native';
+import { Info, CalendarBlank, ChartLine } from 'phosphor-react-native';
 import { calculateEstimatedLevels, getCurrentEstimatedLevel } from '@/lib/pharmacokinetics';
 import { getEstimatedLevelsGradient } from '@/lib/dosageColors';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
