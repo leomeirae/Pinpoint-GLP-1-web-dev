@@ -10,7 +10,7 @@ interface MedicationListProps {
 }
 
 const MEDICATION_NAMES: Record<string, string> = {
-  mounjaro: 'Mounjaro',
+  mounjaro: 'Tirzepatida',
   ozempic: 'Ozempic',
   saxenda: 'Saxenda',
   wegovy: 'Wegovy',

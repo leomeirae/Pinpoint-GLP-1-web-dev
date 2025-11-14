@@ -127,7 +127,7 @@ export const EstimatedLevelsChart: React.FC = () => {
       const isFuture = date > now;
 
       if (selectedPeriod === 'week') {
-        const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const days = ['Do', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
         const dayLabel = days[date.getDay()];
 
         // Mark today and future projection

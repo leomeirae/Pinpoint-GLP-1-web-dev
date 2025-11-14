@@ -17,7 +17,7 @@ import { MedicationType } from '@/lib/types';
 import * as Haptics from 'expo-haptics';
 
 const MEDICATION_OPTIONS: { value: MedicationType; label: string }[] = [
-  { value: 'mounjaro', label: 'Mounjaro' },
+  { value: 'mounjaro', label: 'Tirzepatida' },
   { value: 'ozempic', label: 'Ozempic' },
   { value: 'saxenda', label: 'Saxenda' },
   { value: 'wegovy', label: 'Wegovy' },

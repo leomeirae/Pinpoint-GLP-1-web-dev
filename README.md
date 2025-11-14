@@ -2,7 +2,7 @@
 
 ![LGPD Compliant](https://img.shields.io/badge/LGPD-Compliant-green) ![React Native](https://img.shields.io/badge/React%20Native-0.81.5-blue) ![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 
-**Aplicativo para acompanhamento de medicamentos GLP-1 (Mounjaro, Ozempic, Saxenda, Wegovy)**
+**Aplicativo para acompanhamento de medicamentos GLP-1 (Tirzepatida, Ozempic, Saxenda, Wegovy)**
 
 ---
 

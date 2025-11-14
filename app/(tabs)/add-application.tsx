@@ -20,7 +20,6 @@ import { useProfile } from '@/hooks/useProfile';
 import { useMedications } from '@/hooks/useMedications';
 import { ForecastChart } from '@/components/application/ForecastChart';
 import { MedicationApplication } from '@/lib/pharmacokinetics';
-import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/lib/logger';
@@ -32,7 +31,6 @@ interface ApplicationData {
   date: Date;
   dosage: number | null;
   injectionSite: string;
-  painLevel: number;
   notes: string;
   medication: string;
 }
@@ -40,7 +38,7 @@ interface ApplicationData {
 const MEDICATIONS = [
   { id: 'zepbound', name: 'Zepbound®' },
   { id: 'wegovy', name: 'Wegovy®' },
-  { id: 'mounjaro', name: 'Mounjaro®' },
+  { id: 'mounjaro', name: 'Tirzepatida' },
   { id: 'ozempic', name: 'Ozempic®' },
   { id: 'tirzepatide', name: 'Tirzepatida' },
   { id: 'semaglutide', name: 'Semaglutida' },
@@ -99,7 +97,6 @@ export default function AddApplicationScreen() {
     date: new Date(),
     dosage: null,
     injectionSite: '',
-    painLevel: 0,
     notes: '',
     medication: 'mounjaro',
   });
@@ -122,7 +119,6 @@ export default function AddApplicationScreen() {
           date: applicationToEdit.date || new Date(),
           dosage: applicationToEdit.dosage,
           injectionSite: applicationToEdit.injection_sites[0] || '',
-          painLevel: 0, // pain_level was removed from schema
           notes: applicationToEdit.notes || '',
           medication: 'mounjaro', // medication_type was removed, using default
         });
@@ -295,7 +291,7 @@ export default function AddApplicationScreen() {
   };
 
   const getMedicationName = () => {
-    return MEDICATIONS.find((m) => m.id === data.medication)?.name || 'Mounjaro®';
+    return MEDICATIONS.find((m) => m.id === data.medication)?.name || 'Tirzepatida';
   };
 
   const getInjectionSiteName = () => {
@@ -480,34 +476,6 @@ export default function AddApplicationScreen() {
                 </Text>
                 <Ionicons name="chevron-down" size={16} color={colors.primary} />
               </TouchableOpacity>
-            </View>
-
-            {/* Nível de Dor - V0 Design */}
-            <View
-              style={[
-                styles.detailRow,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.painLevelContainer}>
-                <Text style={[styles.detailLabel, { color: colors.text }]}>Nível de Dor</Text>
-                <Text style={[styles.painValue, { color: colors.text }]}>
-                  {Math.round(data.painLevel)}
-                </Text>
-              </View>
-              <Slider
-                style={styles.painSlider}
-                minimumValue={0}
-                maximumValue={10}
-                value={data.painLevel}
-                onValueChange={(value) => {
-                  setData({ ...data, painLevel: value });
-                  Haptics.selectionAsync();
-                }}
-                minimumTrackTintColor={colors.primary}
-                maximumTrackTintColor={colors.border}
-                thumbTintColor={colors.primary}
-              />
             </View>
           </View>
 
@@ -862,21 +830,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
-  },
-  painLevelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    width: '100%',
-  },
-  painSlider: {
-    width: '100%',
-    height: 8,
-  },
-  painValue: {
-    fontSize: 24,
-    fontWeight: '700',
   },
   chartContainer: {
     borderRadius: 12,

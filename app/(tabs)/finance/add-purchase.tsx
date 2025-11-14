@@ -103,10 +103,6 @@ export default function AddPurchaseScreen() {
     setSelectedDosage(null); // Reset dosage
   };
 
-  const handleDosageSelect = (dosage: number) => {
-    setSelectedDosage(dosage);
-  };
-
   const formatCurrencyInput = (value: string) => {
     // Remove tudo exceto números e vírgula
     let cleaned = value.replace(/[^0-9,]/g, '');
@@ -289,38 +285,26 @@ export default function AddPurchaseScreen() {
         {selectedMedication && (
           <View style={styles.section}>
             <Text style={[styles.label, { color: colors.text }]}>
-              Dosagem <Text style={{ color: colors.error }}>*</Text>
+              Dosagem ({selectedMedication.unit}) <Text style={{ color: colors.error }}>*</Text>
             </Text>
-            <View style={styles.optionsGrid}>
-              {selectedMedication?.availableDoses?.map((dose) => (
-                <ScalePress
-                  key={dose}
-                  onPress={() => handleDosageSelect(dose)}
-                  style={[
-                    styles.optionButton,
-                    styles.dosageButton,
-                    {
-                      backgroundColor:
-                        selectedDosage === dose ? colors.primary : colors.backgroundSecondary,
-                      borderColor: selectedDosage === dose ? colors.primary : colors.border,
-                    },
-                  ]}
-                  hapticType="light"
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      {
-                        color: selectedDosage === dose ? '#FFFFFF' : colors.text,
-                      },
-                    ]}
-                  >
-                    {dose}
-                    {selectedMedication.unit}
-                  </Text>
-                </ScalePress>
-              ))}
-            </View>
+            <TextInput
+              style={[
+                styles.input,
+                { 
+                  backgroundColor: colors.backgroundSecondary, 
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
+              placeholder="Ex: 2.5, 5, 7.5, 10, 12.5, 15"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="decimal-pad"
+              value={selectedDosage !== null ? String(selectedDosage) : ''}
+              onChangeText={(text) => {
+                const numValue = parseFloat(text.replace(',', '.'));
+                setSelectedDosage(isNaN(numValue) ? null : numValue);
+              }}
+            />
           </View>
         )}
 
@@ -513,9 +497,6 @@ const styles = StyleSheet.create({
     paddingVertical: ShotsyDesignTokens.spacing.sm,
     paddingHorizontal: ShotsyDesignTokens.spacing.md,
     borderWidth: 1,
-  },
-  dosageButton: {
-    minWidth: 70,
   },
   optionText: {
     ...ShotsyDesignTokens.typography.button,

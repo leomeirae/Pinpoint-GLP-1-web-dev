@@ -225,7 +225,7 @@ export const PersonalInfoEditor: React.FC<PersonalInfoEditorProps> = ({
               style={[styles.input, { color: colors.text, borderColor: colors.border }]}
               value={medication}
               onChangeText={setMedication}
-              placeholder="Ex: Mounjaro, Ozempic"
+              placeholder="Ex: Tirzepatida, Ozempic"
               placeholderTextColor={colors.textSecondary}
               autoCapitalize="words"
             />

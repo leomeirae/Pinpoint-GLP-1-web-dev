@@ -34,9 +34,9 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     id: 2,
-    question: 'O que inclui o Mounjaro+ premium?',
+    question: 'O que inclui o Pinpoint+ premium?',
     answer:
-      'O Mounjaro+ inclui:\n\n• AI Pack / Nutrição com insights personalizados\n• Exportações PDF e CSV do seu histórico\n• Insights avançados e tendências\n• Lembretes inteligentes com janelas dinâmicas\n• Backup e sincronização em nuvem\n• Gráficos e filtros avançados\n• Anexos ilimitados por registro\n• Temas e personalização extras\n• Suporte prioritário',
+      'O Pinpoint+ inclui:\n\n• AI Pack / Nutrição com insights personalizados\n• Exportações PDF e CSV do seu histórico\n• Insights avançados e tendências\n• Lembretes inteligentes com janelas dinâmicas\n• Backup e sincronização em nuvem\n• Gráficos e filtros avançados\n• Anexos ilimitados por registro\n• Temas e personalização extras\n• Suporte prioritário',
     slug: 'o-que-inclui-premium',
   },
   {
@@ -90,7 +90,7 @@ const FAQ_ITEMS: FAQItem[] = [
   },
   {
     id: 10,
-    question: 'Como restauro minha assinatura Mounjaro+ em um novo dispositivo?',
+    question: 'Como restauro minha assinatura Pinpoint+ em um novo dispositivo?',
     answer:
       'Para restaurar sua assinatura em um novo dispositivo:\n\n1. Faça login com a mesma conta do Clerk (Google, Apple, etc.)\n2. O app detectará automaticamente sua assinatura ativa\n3. Se não aparecer, vá em Configurações > Restaurar Compras\n\nNota: Sua assinatura está vinculada à sua conta do Clerk, não ao dispositivo. Ao fazer login, todas as funcionalidades premium serão restauradas automaticamente.',
     slug: 'restaurar-assinatura',
@@ -99,7 +99,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: 11,
     question: 'Enviei uma solicitação de suporte mas ainda não obtive resposta.',
     answer:
-      'Nosso tempo de resposta padrão é de 24-48 horas úteis.\n\nSe você ainda não recebeu resposta:\n\n• Verifique sua caixa de entrada e spam\n• Confirme que forneceu um email válido\n• Se você é assinante Mounjaro+, tem suporte prioritário com resposta mais rápida\n\nPara urgências, você pode tentar entrar em contato novamente através das configurações.',
+      'Nosso tempo de resposta padrão é de 24-48 horas úteis.\n\nSe você ainda não recebeu resposta:\n\n• Verifique sua caixa de entrada e spam\n• Confirme que forneceu um email válido\n• Se você é assinante Pinpoint+, tem suporte prioritário com resposta mais rápida\n\nPara urgências, você pode tentar entrar em contato novamente através das configurações.',
     slug: 'suporte-sem-resposta',
   },
   {

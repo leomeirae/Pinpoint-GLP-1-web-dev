@@ -65,7 +65,7 @@ export default function CalendarViewScreen() {
       date: app.date || new Date(app.application_date),
       time: app.date || new Date(app.application_date),
       dosage: app.dosage,
-      medication: 'Mounjaro',
+      medication: 'Tirzepatida',
     }));
 
     const weightEvents: CalendarEvent[] = weights.map((weight) => ({

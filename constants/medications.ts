@@ -16,7 +16,7 @@ export interface MedicationConfig {
 export const DEFAULT_MEDICATION_CONFIGS: MedicationConfig[] = [
   {
     id: 'mounjaro',
-    name: 'Mounjaro',
+    name: 'Tirzepatida',
     genericName: 'Tirzepatida',
     availableDoses: [2.5, 5, 7.5, 10, 12.5, 15],
     unit: 'mg',

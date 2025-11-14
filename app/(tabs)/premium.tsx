@@ -1,5 +1,5 @@
 // app/(tabs)/premium.tsx
-// Tela de Paywall - Mounjaro+
+// Tela de Paywall - Pinpoint+
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -138,7 +138,7 @@ export default function PremiumScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Mounjaro+</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Pinpoint+</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -146,7 +146,7 @@ export default function PremiumScreen() {
           <View style={styles.statusContainer}>
             <Ionicons name="checkmark-circle" size={64} color={colors.primary} />
             <Text style={[styles.statusTitle, { color: colors.text }]}>
-              Você é assinante Mounjaro+
+              Você é assinante Pinpoint+
             </Text>
             {hasActiveTrial && daysUntilTrialExpires !== null && (
               <Text style={[styles.statusSubtitle, { color: colors.textSecondary }]}>

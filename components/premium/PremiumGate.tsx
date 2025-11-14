@@ -43,7 +43,7 @@ export function PremiumGate({ children, featureName, fallback }: PremiumGateProp
       <View style={styles.gateContainer}>
         <Text style={[styles.gateTitle, { color: colors.text }]}>Recurso Premium</Text>
         <Text style={[styles.gateDescription, { color: colors.textSecondary }]}>
-          Este recurso está disponível apenas para assinantes Mounjaro+
+          Este recurso está disponível apenas para assinantes Pinpoint+
         </Text>
         <TouchableOpacity
           style={[styles.upgradeButton, { backgroundColor: colors.primary }]}
@@ -55,7 +55,7 @@ export function PremiumGate({ children, featureName, fallback }: PremiumGateProp
             router.push('/(tabs)/premium');
           }}
         >
-          <Text style={styles.upgradeButtonText}>Assinar Mounjaro+</Text>
+          <Text style={styles.upgradeButtonText}>Assinar Pinpoint+</Text>
         </TouchableOpacity>
       </View>
     );

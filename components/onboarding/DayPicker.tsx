@@ -7,7 +7,7 @@ import { useColors } from '@/hooks/useShotsyColors';
 import { ShotsyDesignTokens } from '@/constants/shotsyDesignTokens';
 
 const DAYS = [
-  { value: 0, label: 'Dom', fullLabel: 'Domingo' },
+  { value: 0, label: 'Do', fullLabel: 'Domingo' },
   { value: 1, label: 'Seg', fullLabel: 'Segunda-feira' },
   { value: 2, label: 'Ter', fullLabel: 'Terça-feira' },
   { value: 3, label: 'Qua', fullLabel: 'Quarta-feira' },
