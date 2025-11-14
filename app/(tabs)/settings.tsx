@@ -490,7 +490,7 @@ export default function SettingsScreen() {
     {
       icon: <Pill size={20} color={colors.primary} weight="bold" />,
       label: 'Medicamento & Frequência',
-      onPress: () => router.push('/(tabs)/treatment-settings'),
+      onPress: () => router.push('/treatment-settings'),
     },
     {
       icon: <Target size={20} color={colors.accentGreen || '#22c55e'} weight="bold" />,
@@ -547,7 +547,7 @@ export default function SettingsScreen() {
     {
       icon: <Info size={20} color={colors.textSecondary} weight="bold" />,
       label: 'Sobre o App',
-      onPress: () => router.push('/(tabs)/about'),
+      onPress: () => router.push('/about'),
     },
     {
       icon: <Star size={20} color={colors.accentYellow || '#eab308'} weight="bold" />,
